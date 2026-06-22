@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ Quiniela FIFA WC 2026</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+:root {
+  --verde:#00C853;--verde-dark:#007B33;--dorado:#FFD700;--naranja:#FF6B00;
+  --rojo:#E53935;--azul:#1565C0;--bg:#0A0E1A;--bg2:#111827;--bg3:#1C2333;
+  --bg4:#243047;--border:rgba(255,255,255,0.08);--text:#F0F4FF;
+  --text2:#8A9BB8;--text3:#5A6A8A;--r:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#0D1B2A,#1A2C4A,#0D1B2A);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.hdr{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;gap:12px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;background:linear-gradient(135deg,var(--verde),var(--dorado));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.logo span{font-size:11px;display:block;letter-spacing:3px;opacity:.6;-webkit-text-fill-color:var(--text3);font-family:'Inter',sans-serif;font-weight:300}
+.upd{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;background:var(--bg3);border:1px solid var(--border);padding:4px 10px;border-radius:20px;white-space:nowrap}
+.dot{display:inline-block;width:6px;height:6px;background:var(--verde);border-radius:50%;margin-right:5px;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* NAV */
+nav{background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.navi{max-width:1400px;margin:0 auto;display:flex;padding:0 16px;gap:2px}
+.nb{padding:10px 14px;background:none;border:none;color:var(--text2);cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;white-space:nowrap;border-bottom:2px solid transparent;transition:all .2s;display:flex;align-items:center;gap:5px}
+.nb:hover{color:var(--text)}
+.nb.active{color:var(--verde);border-bottom-color:var(--verde)}
+
+/* MAIN */
+main{max-width:1400px;margin:0 auto;padding:20px 16px}
+.sec{display:none}.sec.active{display:block}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.card-hdr{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.card-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px}
+
+/* LOADING */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:14px}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--verde);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{color:var(--text2);font-size:13px}
+
+/* STATS BAR */
+.stats-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.sc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.sc.g::before{background:var(--dorado)}.sc.s::before{background:#C0C0C0}
+.sc.gr::before{background:var(--verde)}.sc.re::before{background:var(--rojo)}
+.sc.bl::before{background:var(--azul)}
+.sl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:5px}
+.sv{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--text)}
+.ss{font-size:11px;color:var(--text2);margin-top:3px}
+
+/* SEARCH */
+.srow{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.si{flex:1;min-width:160px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
+.si:focus{border-color:var(--verde)}
+.si::placeholder{color:var(--text3)}
+.ssel{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;outline:none;cursor:pointer}
+
+/* TABLE */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{padding:9px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{color:var(--text2)}
+thead th.sorted{color:var(--verde)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
+tbody tr:hover{background:var(--bg3)}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:10px 14px;font-size:12px;white-space:nowrap}
+.rank{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600}
+.r1c{color:var(--dorado)}.r2c{color:#C0C0C0}.r3c{color:#CD7F32}.rlc{color:var(--rojo)}
+.pts{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:var(--verde)}
+.dif{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3)}
+.dif.zero{color:var(--dorado)}
+.ztop{background:rgba(255,215,0,0.03)}
+.zlast{background:rgba(229,57,53,0.03)}
+
+/* hide on mobile */
+@media(max-width:640px){.hide-mob{display:none}}
+@media(min-width:641px){.hide-desk{display:none}}
+
+/* BUTTONS */
+.btn{background:var(--verde);color:#000;border:none;padding:9px 18px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
+.btn:hover{background:#00e85f}
+.btn-sec{background:var(--bg3);color:var(--text2);border:1px solid var(--border);padding:8px 14px;border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;transition:all .2s}
+.btn-sec:hover{border-color:var(--verde);color:var(--verde)}
+
+/* MI QUINIELA */
+.search-big{max-width:480px;margin:0 auto 28px;display:flex;gap:10px}
+.search-big input{flex:1}
+.profile-card{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:18px}
+.profile-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:1px}
+.profile-rank{font-size:13px;color:var(--text3);margin-top:4px}
+.pstats{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px}
+.pstat .val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:var(--verde)}
+.pstat .lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px}
+
+/* GROUP MATCH CARDS */
+.ggroup{margin-bottom:20px}
+.gg-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--dorado);margin-bottom:10px;padding-left:4px}
+.matches-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+.match-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px}
+.match-teams{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px}
+.team-name{color:var(--text2);flex:1}
+.team-name.right{text-align:right}
+.match-score{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;background:var(--bg3);padding:4px 10px;border-radius:6px;border:1px solid var(--border)}
+.match-result{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:10px;color:var(--text3)}
+.badge{padding:2px 7px;border-radius:4px;font-weight:600;font-size:10px}
+.b-exact{background:rgba(255,215,0,.2);color:var(--dorado)}
+.b-result{background:rgba(0,200,83,.15);color:var(--verde)}
+.b-miss{background:rgba(229,57,53,.12);color:var(--rojo)}
+.b-pend{background:rgba(90,106,138,.15);color:var(--text3)}
+
+/* BRACKET */
+.bracket-wrap{overflow-x:auto;padding:10px 0}
+.bracket{display:flex;gap:0;min-width:700px}
+.bracket-round{display:flex;flex-direction:column;flex:1;padding:0 8px}
+.bracket-round-title{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);text-align:center;margin-bottom:12px;font-weight:600}
+.bracket-matches{display:flex;flex-direction:column;justify-content:space-around;flex:1;gap:8px}
+.bracket-match{background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden;position:relative}
+.bracket-team{padding:6px 10px;font-size:11px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.bracket-team:last-child{border-bottom:none}
+.bracket-team.winner{background:rgba(0,200,83,.08);color:var(--verde);font-weight:600}
+.bracket-team.tbd{color:var(--text3);font-style:italic}
+.bracket-pts{font-family:'JetBrains Mono',monospace;font-size:10px}
+
+/* CLAUDINHO */
+.bot-wrap{max-width:680px;margin:0 auto}
+.bot-hdr{background:linear-gradient(135deg,#0a2010,#0f3320);border:1px solid rgba(0,200,83,.25);border-radius:var(--r) var(--r) 0 0;padding:18px 22px;display:flex;align-items:center;gap:16px}
+.bot-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#006622,#00aa33);display:flex;align-items:center;justify-content:center;font-size:28px;border:2px solid rgba(0,200,83,.3);flex-shrink:0;position:relative;overflow:hidden}
+.bot-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px}
+.bot-desc{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+.bot-online{font-size:10px;color:var(--verde);margin-top:3px}
+.bot-online::before{content:'● ';font-size:8px}
+.chat-msgs{background:var(--bg2);border-left:1px solid rgba(0,200,83,.2);border-right:1px solid rgba(0,200,83,.2);padding:18px;min-height:280px;max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:82%}
+.msg.bot{align-self:flex-start}
+.msg.user{align-self:flex-end}
+.mbub{padding:10px 13px;border-radius:10px;font-size:13px;line-height:1.5}
+.msg.bot .mbub{background:var(--bg3);border:1px solid var(--border);border-bottom-left-radius:2px}
+.msg.user .mbub{background:linear-gradient(135deg,#003d15,#005c20);border:1px solid rgba(0,200,83,.25);color:#e0ffe8;border-bottom-right-radius:2px}
+.mtime{font-size:10px;color:var(--text3);margin-top:3px;padding:0 3px}
+.msg.user .mtime{text-align:right}
+.quick-q{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;background:var(--bg2);border-left:1px solid rgba(0,200,83,.2);border-right:1px solid rgba(0,200,83,.2);border-bottom:1px solid var(--border)}
+.qq{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:4px 9px;border-radius:16px;font-size:11px;cursor:pointer;transition:all .2s}
+.qq:hover{border-color:var(--verde);color:var(--verde)}
+.chat-in-row{background:var(--bg3);border:1px solid rgba(0,200,83,.2);border-radius:0 0 var(--r) var(--r);padding:14px;display:flex;gap:10px}
+.chat-in{flex:1;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:9px 13px;border-radius:7px;font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
+.chat-in:focus{border-color:var(--verde)}
+.chat-in::placeholder{color:var(--text3)}
+.chat-send{background:var(--verde);color:#000;border:none;padding:9px 14px;border-radius:7px;cursor:pointer;font-weight:700;font-size:15px;transition:background .2s}
+.chat-send:hover{background:#00e85f}
+.chat-send:disabled{background:var(--text3);cursor:default}
+.typing{display:flex;gap:4px;align-items:center;padding:2px 0}
+.typing span{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:typ .8s infinite}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes typ{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+
+/* NOMINADOS */
+.nom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:28px}
+.nom-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;transition:transform .2s,border-color .2s;position:relative;overflow:hidden}
+.nom-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.15)}
+.nom-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--verde-dark),var(--verde))}
+.nom-icon{font-size:28px;margin-bottom:8px}
+.nom-cat{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:3px}
+.nom-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px}
+.nom-item{font-size:12px;color:var(--text2);padding:4px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.nom-item:last-child{border-bottom:none}
+.nom-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--verde);font-weight:600}
+
+/* STATS FUERTES */
+.dist-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
+.dist-name{width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2)}
+.dist-bar{flex:1;height:6px;background:var(--bg4);border-radius:3px}
+.dist-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--verde-dark),var(--verde))}
+.dist-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);width:26px;text-align:right}
+.dist-pct{font-size:10px;color:var(--text3);width:30px;text-align:right}
+
+/* PROFETAS */
+.prof-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.prof-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.prof-card-hdr{padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
+.prof-row{padding:7px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:12px}
+.prof-row:last-child{border-bottom:none}
+.prof-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);width:18px}
+.prof-name{flex:1;color:var(--text2)}
+.prof-bar-wrap{width:60px}
+.prof-bar{height:4px;background:var(--bg4);border-radius:2px}
+.prof-fill{height:100%;border-radius:2px}
+
+/* ROMPE */
+.rompe-list{display:flex;flex-direction:column;gap:10px}
+.rompe-item{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.rompe-match{font-size:13px;font-weight:500}
+.rompe-real{font-size:11px;color:var(--rojo);font-family:'JetBrains Mono',monospace}
+.rompe-pct{font-size:11px;color:var(--text3)}
+.rompe-impact{font-size:11px;padding:3px 8px;border-radius:4px;background:rgba(229,57,53,.12);color:var(--rojo);font-weight:600}
+
+/* GRUPOS STAT */
+.grupos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.grupo-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.grupo-box-hdr{padding:9px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
+
+/* COMENTARIOS */
+.comment-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:14px}
+.comment-meta{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.comment-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#006622,#00aa33);display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid rgba(0,200,83,.2);flex-shrink:0}
+.comment-byline{font-weight:600;font-size:13px}
+.comment-date{font-size:11px;color:var(--text3)}
+.comment-headline{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;margin-bottom:8px;line-height:1.2}
+.comment-body{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* DATOS CURIOSOS */
+.fact-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.fact-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;display:flex;gap:14px;align-items:flex-start;transition:border-color .2s}
+.fact-card:hover{border-color:rgba(255,255,255,.14)}
+.fact-icon{font-size:26px;flex-shrink:0;line-height:1}
+.fact-date{font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.7px}
+.fact-text{font-size:13px;color:var(--text);line-height:1.5}
+
+/* MISC */
+.sec-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;margin-bottom:18px;display:flex;align-items:center;gap:12px}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px}
+.empty .icon{font-size:40px;margin-bottom:10px}
+.apikey-banner{background:rgba(255,200,0,.08);border:1px solid rgba(255,200,0,.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--dorado);display:flex;align-items:center;gap:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-top:1px solid var(--border);margin-top:40px}
+</style>
+</head>
+<body>
+
+<header>
+<div class="hdr">
+  <div class="logo">⚽ Quiniela WC 2026<span>FIFA WORLD CUP · USA · MÉXICO · CANADÁ</span></div>
+  <div class="upd"><span class="dot"></span><span id="upd-time">Cargando...</span></div>
+</div>
+</header>
+
+<nav>
+<div class="navi">
+  <button class="nb active" onclick="show('tabla')" id="btn-tabla">🏆 Tabla</button>
+  <button class="nb" onclick="show('miquiniela')" id="btn-miquiniela">👤 Mi Quiniela</button>
+  <button class="nb" onclick="show('profetas')" id="btn-profetas">🔮 Profetas</button>
+  <button class="nb" onclick="show('nominados')" id="btn-nominados">🎖 Nominados</button>
+  <button class="nb" onclick="show('grupos')" id="btn-grupos">📊 Grupos</button>
+  <button class="nb" onclick="show('comentarios')" id="btn-comentarios">📰 Crónica</button>
+  <button class="nb" onclick="show('curiosos')" id="btn-curiosos">🧩 Curiosidades</button>
+  <button class="nb" onclick="show('claudinho')" id="btn-claudinho">🤖 Claudinho</button>
+</div>
+</nav>
+
+<main>
+
+<!-- ══ TABLA ══ -->
+<div id="tabla" class="sec active">
+  <div class="stats-bar">
+    <div class="sc g"><div class="sl">🥇 Líder</div><div class="sv" id="s-leader" style="font-size:16px;margin-top:2px">—</div><div class="ss" id="s-leader-pts">—</div></div>
+    <div class="sc re"><div class="sl">🔴 Último</div><div class="sv" id="s-last" style="font-size:16px;margin-top:2px">—</div><div class="ss" id="s-last-pts">—</div></div>
+    <div class="sc gr"><div class="sl">👥 Participantes</div><div class="sv" id="s-total">—</div><div class="ss">quinielas activas</div></div>
+    <div class="sc bl"><div class="sl">📍 Promedio</div><div class="sv" id="s-avg">—</div><div class="ss">puntos</div></div>
+    <div class="sc s"><div class="sl">🔄 Actualizado</div><div class="sv" id="s-upd" style="font-size:16px;margin-top:4px">—</div><div class="ss">cada 15 min</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">Clasificación General</div>
+      <div style="font-size:11px;color:var(--text3)">Toca columna para ordenar</div>
+    </div>
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+      <div class="srow">
+        <input class="si" type="text" id="search-t" placeholder="🔍 Buscar nombre..." oninput="filterT()">
+        <select class="ssel" id="sort-sel" onchange="sortT(this.value)">
+          <option value="rank">Por posición</option>
+          <option value="tot">Por puntos totales</option>
+          <option value="marc">Por marcadores</option>
+          <option value="r2">Por R2</option>
+          <option value="fg">Por Fase Grupos</option>
+        </select>
+      </div>
+    </div>
+    <div class="tw" id="tabla-cont"><div class="loading"><div class="spinner"></div><p>Conectando con Google Sheets...</p></div></div>
+  </div>
+</div>
+
+<!-- ══ MI QUINIELA ══ -->
+<div id="miquiniela" class="sec">
+  <div class="sec-title">👤 Mi Quiniela</div>
+  <div class="search-big">
+    <input class="si" type="text" id="mi-q" placeholder="Escribe tu nombre...">
+    <button class="btn" onclick="buscarMQ()">Ver quiniela</button>
+  </div>
+  <div id="mi-result"></div>
+</div>
+
+<!-- ══ PROFETAS ══ -->
+<div id="profetas" class="sec">
+  <div class="sec-title">🔮 Profetas — Análisis de Pronósticos</div>
+  <div id="profetas-cont"><div class="loading"><div class="spinner"></div><p>Calculando...</p></div></div>
+</div>
+
+<!-- ══ NOMINADOS ══ -->
+<div id="nominados" class="sec">
+  <div class="sec-title">🎖 Nominados</div>
+  <p style="color:var(--text2);font-size:13px;margin-bottom:20px">Estadísticas y rankings destacados del torneo — el campeón se conocerá al final.</p>
+  <div class="nom-grid" id="nom-cont"><div class="loading"><div class="spinner"></div><p>Calculando...</p></div></div>
+</div>
+
+<!-- ══ GRUPOS ══ -->
+<div id="grupos" class="sec">
+  <div class="sec-title">📊 Por Grupo</div>
+  <div class="grupos-grid" id="grupos-cont"><div class="loading"><div class="spinner"></div><p>Calculando...</p></div></div>
+</div>
+
+<!-- ══ COMENTARIOS ══ -->
+<div id="comentarios" class="sec">
+  <div class="sec-title">📰 Crónica de Claudinho</div>
+  <div id="comment-cont">
+    <div class="comment-card">
+      <div class="comment-meta">
+        <div class="comment-avatar">🧒</div>
+        <div><div class="comment-byline">Claudinho ⚽</div><div class="comment-date" id="comment-date">Cargando...</div></div>
+      </div>
+      <div class="comment-headline" id="comment-headline">⏳ Generando crónica del día...</div>
+      <div class="comment-body" id="comment-body">Claudinho está analizando los últimos resultados para traerte la mejor crónica. ¡Un momento!</div>
+    </div>
+    <div id="extra-comments"></div>
+  </div>
+</div>
+
+<!-- ══ CURIOSIDADES ══ -->
+<div id="curiosos" class="sec">
+  <div class="sec-title">🧩 Datos Curiosos</div>
+  <div class="fact-grid" id="facts-cont"><div class="loading"><div class="spinner"></div><p>Buscando curiosidades...</p></div></div>
+</div>
+
+<!-- ══ CLAUDINHO ══ -->
+<div id="claudinho" class="sec">
+  <div class="sec-title">🤖 Claudinho</div>
+  <div id="api-banner" class="apikey-banner" style="display:none">
+    🔑 <span>Claudinho necesita tu API key para responder. <input id="apikey-in" type="password" placeholder="sk-ant-..." style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px;margin:0 6px;width:200px"> <button class="btn" style="font-size:11px;padding:4px 10px" onclick="saveKey()">Guardar</button></span>
+  </div>
+  <div class="bot-wrap">
+    <div class="bot-hdr">
+      <div class="bot-avatar">🧒</div>
+      <div>
+        <div class="bot-name">Claudinho ⚽🇲🇽</div>
+        <div class="bot-desc">Seu quinieleiro digital · WC 2026</div>
+        <div class="bot-online" id="bot-status">Listo para ayudar</div>
+      </div>
+    </div>
+    <div class="chat-msgs" id="chat-msgs">
+      <div class="msg bot">
+        <div class="mbub">
+          Olá quinieleiro! Sou o <strong>Claudinho</strong> ⚽🇲🇽<br><br>
+          Tenho acesso a todas las 118 quinielas em tempo real. Pregúntame sobre posiciones, pronósticos, estadísticas... ¡todo lo que quieras saber de la quiniela!
+        </div>
+        <div class="mtime">Ahora</div>
+      </div>
+    </div>
+    <div class="quick-q">
+      <button class="qq" onclick="sendQ('¿Quién va en primer lugar y por cuánto?')">👑 Líder actual</button>
+      <button class="qq" onclick="sendQ('¿Cuántos quinieleiros pronosticaron a México campeón?')">🇲🇽 México campeón</button>
+      <button class="qq" onclick="sendQ('¿Cuáles son los 3 partidos que más movieron la tabla?')">📈 Partidos clave</button>
+      <button class="qq" onclick="sendQ('¿Quién tiene más marcadores exactos?')">🎯 Más exacto</button>
+      <button class="qq" onclick="sendQ('Dame un dato curioso de la quiniela')">🧩 Dato curioso</button>
+      <button class="qq" onclick="sendQ('¿Quién puede todavía remontar al primer lugar?')">🚀 Remontadas</button>
+    </div>
+    <div class="chat-in-row">
+      <input class="chat-in" type="text" id="chat-in" placeholder="Pregúntale a Claudinho..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="chat-send" id="chat-send" onclick="sendChat()">➤</button>
+    </div>
+  </div>
+</div>
+
+</main>
+<footer>Quiniela FIFA WC 2026 · Datos en tiempo real desde Google Sheets · Actualización automática cada 15 min</footer>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// CONFIG — GIDs confirmados
+// ══════════════════════════════════════════════════════════
+const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSx33hImGNFAoNxBKi7JD7ZqGMoVyeMNvSD6j1JdMxo38oB61xgTYvw3YLUImn-dMwZ-j5gdHMcprh5';
+const GIDS = {
+  tabla:     '2061338906',
+  quinielas: '1616528942',
+  control:   '1834452765',
+};
+const csvUrl = gid => `${BASE}/pub?gid=${gid}&single=true&output=csv`;
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let players = [], sortDir = {col:'rank',asc:true}, workingGid = null;
+let quinielaRows = [];
+let apiKey = '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';
+
+// ══════════════════════════════════════════════════════════
+// FETCH — 3 estrategias anti-CORS en cascada
+// ══════════════════════════════════════════════════════════
+async function tryFetch(url, timeoutMs=10000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    return r;
+  } catch(e) {
+    clearTimeout(t);
+    throw e;
+  }
+}
+
+function isValidCSV(txt) {
+  return txt && txt.length > 50 && !txt.trim().startsWith('<!') && !txt.trim().startsWith('{');
+}
+
+async function fetchCSV(gid) {
+  const direct = csvUrl(gid);
+
+  // 1️⃣ Directo (funciona en algunos contextos)
+  try {
+    const r = await tryFetch(direct, 7000);
+    if (r.ok) {
+      const txt = await r.text();
+      if (isValidCSV(txt)) { console.log('✅ Directo'); return parseCSV(txt); }
+    }
+  } catch(e) { console.warn('Directo falló:', e.message); }
+
+  // 2️⃣ allorigins.win proxy
+  try {
+    const r = await tryFetch(`https://api.allorigins.win/get?url=${encodeURIComponent(direct)}`, 10000);
+    if (r.ok) {
+      const data = await r.json();
+      const txt = data.contents || '';
+      if (isValidCSV(txt)) { console.log('✅ allorigins'); return parseCSV(txt); }
+    }
+  } catch(e) { console.warn('allorigins falló:', e.message); }
+
+  // 3️⃣ corsproxy.io
+  try {
+    const r = await tryFetch(`https://corsproxy.io/?${encodeURIComponent(direct)}`, 10000);
+    if (r.ok) {
+      const txt = await r.text();
+      if (isValidCSV(txt)) { console.log('✅ corsproxy.io'); return parseCSV(txt); }
+    }
+  } catch(e) { console.warn('corsproxy.io falló:', e.message); }
+
+  throw new Error('Los 3 métodos de conexión fallaron. Intenta recargar la página.');
+}
+
+function parseCSV(txt) {
+  return txt.split('\n').map(line => {
+    const cols = []; let cur = '', q = false;
+    for (const c of line) {
+      if (c==='"'){q=!q;continue}
+      if (c===','&&!q){cols.push(cur.trim());cur=''}
+      else cur+=c;
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// SMART LOAD — detect header row & column positions
+// ══════════════════════════════════════════════════════════
+function detectCols(rows) {
+  for (let i = 0; i < Math.min(6, rows.length); i++) {
+    const r = rows[i];
+    const ni = r.findIndex(c => c&&c.trim()==='Nombre');
+    const ti = r.findIndex(c => c&&(c.trim()==='Tot'||c.trim()==='Total'));
+    if (ni>=0 && ti>=0) {
+      const fi = r => r.findIndex(c => c&&c.trim()===fi.t);
+      return {
+        hdr: i,
+        rank:   r.findIndex(c=>c&&c.trim()==='Lg') >= 0 ? r.findIndex(c=>c&&c.trim()==='Lg') : ni-1,
+        nombre: ni,
+        r1:     r.findIndex(c=>c&&c.trim()==='R1'),
+        r2:     r.findIndex(c=>c&&c.trim()==='R2'),
+        r3:     r.findIndex(c=>c&&c.trim()==='R3'),
+        marc:   r.findIndex(c=>c&&c.trim()==='Marc'),
+        gpos:   r.findIndex(c=>c&&(c.trim()==='Gpos'||c.trim()==='Grupos')),
+        tot:    ti,
+        dif:    r.findIndex(c=>c&&c.trim()==='Dif') >= 0 ? r.findIndex(c=>c&&c.trim()==='Dif') : ti+1,
+      };
+    }
+  }
+  // fallback — known positions for FIFA WC 2026 sheet
+  return {hdr:1,rank:3,nombre:4,r1:5,r2:6,r3:7,marc:8,gpos:9,tot:14,dif:15};
+}
+
+async function loadAll() {
+  const setMsg = m => {
+    const el = document.getElementById('tabla-cont');
+    if (el) el.innerHTML = `<div class="loading"><div class="spinner"></div><p style="text-align:center">${m}</p></div>`;
+  };
+
+  const attempts = [
+    {gid:GIDS.tabla,   label:'FIFA WC 2026'},
+    {gid:GIDS.control, label:'TablaControl'},
+  ];
+  let rows;
+  for (const a of attempts) {
+    try {
+      setMsg(`Conectando con ${a.label}…<br><small style="color:var(--text3)">Probando métodos de conexión</small>`);
+      const r = await fetchCSV(a.gid);
+      if (r.length > 5) { rows = r; workingGid = a.gid; break; }
+      else throw new Error('Respuesta vacía');
+    } catch(e) {
+      console.warn('❌', a.label, e.message);
+      setMsg(`⚠️ ${a.label}: ${e.message}<br><small>Intentando siguiente…</small>`);
+    }
+  }
+  if (!rows) throw new Error('No se pudo conectar. Verifica tu conexión a internet.');
+
+  const C = detectCols(rows);
+  const pls = [];
+  for (let i = C.hdr+1; i < rows.length; i++) {
+    const r = rows[i];
+    const nombre = r[C.nombre]?.trim();
+    if (!nombre || nombre.startsWith('#')) continue;
+    const tot = parseInt(r[C.tot]) || 0;
+    if (!tot) continue;
+    const r1 = parseInt(r[C.r1])||0, r2 = parseInt(r[C.r2])||0, r3 = parseInt(r[C.r3])||0;
+    const marc = C.marc>=0 ? (parseInt(r[C.marc])||0) : 0;
+    const gpos = C.gpos>=0 ? (parseInt(r[C.gpos])||0) : 0;
+    pls.push({
+      rank: parseInt(r[C.rank])||999, nombre, r1, r2, r3, marc,
+      gpos, fg: r1+r2+r3+gpos, tot, dif: parseInt(r[C.dif])||0
+    });
+  }
+  players = pls;
+
+  // Load Quinielas detail (for profetas, grupos, etc.)
+  try {
+    quinielaRows = await fetchCSV(GIDS.quinielas);
+  } catch(e) {
+    try { quinielaRows = await fetchCSV(GIDS.control); } catch(e2) {}
+  }
+
+  renderTabla(players);
+  updateStats();
+  document.getElementById('upd-time').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('s-upd').textContent = new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+
+  // API key ya está configurada
+  document.getElementById('api-banner').style.display='none';
+  document.getElementById('bot-status').textContent = 'Online · Con datos en tiempo real ✅';
+
+  // Auto-generate daily comment
+  genComment();
+}
+
+// ══════════════════════════════════════════════════════════
+// TABLA
+// ══════════════════════════════════════════════════════════
+function updateStats() {
+  if (!players.length) return;
+  const s = [...players].sort((a,b)=>b.tot-a.tot);
+  const leader = s[0], last = s[s.length-1];
+  const avg = Math.round(players.reduce((x,p)=>x+p.tot,0)/players.length);
+  const shortName = n => n.split(' ').slice(0,2).join(' ');
+  document.getElementById('s-leader').textContent = shortName(leader.nombre);
+  document.getElementById('s-leader-pts').textContent = leader.tot+' pts';
+  document.getElementById('s-last').textContent = shortName(last.nombre);
+  document.getElementById('s-last-pts').textContent = last.tot+' pts';
+  document.getElementById('s-total').textContent = players.length;
+  document.getElementById('s-avg').textContent = avg;
+}
+
+function renderTabla(pls) {
+  const maxRank = Math.max(...pls.map(p=>p.rank));
+  document.getElementById('tabla-cont').innerHTML = `<table>
+    <thead><tr>
+      <th onclick="sortByCol('rank')">Pos</th>
+      <th onclick="sortByCol('nombre')">Nombre</th>
+      <th onclick="sortByCol('tot')" class="${sortDir.col==='tot'?'sorted':''}">Total</th>
+      <th onclick="sortByCol('dif')">Dif</th>
+      <th onclick="sortByCol('marc')" class="hide-mob">Marc.</th>
+      <th onclick="sortByCol('r1')" class="hide-mob">R1</th>
+      <th onclick="sortByCol('r2')">R2</th>
+      <th onclick="sortByCol('r3')" class="hide-mob">R3</th>
+      <th onclick="sortByCol('fg')" class="hide-mob">Fase G.</th>
+    </tr></thead>
+    <tbody>
+    ${pls.map(p => {
+      const top3 = p.rank<=3, isLast = p.rank>=maxRank;
+      const medal = p.rank===1?'🥇':p.rank===2?'🥈':p.rank===3?'🥉':isLast?'🔴':'';
+      const rc = p.rank===1?'r1c':p.rank===2?'r2c':p.rank===3?'r3c':isLast?'rlc':'';
+      const difStr = p.dif===0?'LÍDER':p.dif<0?p.dif:'+'+ p.dif;
+      return `<tr class="${top3?'ztop':isLast?'zlast':''}" onclick="quickMQ('${p.nombre.replace(/'/g,"\\'")}')">
+        <td><span class="rank ${rc}">${medal||('#'+p.rank)}</span></td>
+        <td style="font-weight:500;font-size:12px">${p.nombre}</td>
+        <td class="pts">${p.tot}</td>
+        <td class="dif ${p.dif===0?'zero':''}">${difStr}</td>
+        <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px">${p.marc}</td>
+        <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px">${p.r1}</td>
+        <td style="font-family:JetBrains Mono,monospace;font-size:11px">${p.r2}</td>
+        <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px">${p.r3}</td>
+        <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--verde)">${p.fg}</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+
+function sortByCol(col) {
+  if (sortDir.col===col) sortDir.asc=!sortDir.asc;
+  else {sortDir.col=col; sortDir.asc=(col==='rank'||col==='nombre');}
+  const q = document.getElementById('search-t').value.toLowerCase();
+  let pls = q ? players.filter(p=>p.nombre.toLowerCase().includes(q)) : [...players];
+  if (col==='nombre') pls.sort((a,b)=>sortDir.asc?a.nombre.localeCompare(b.nombre):b.nombre.localeCompare(a.nombre));
+  else pls.sort((a,b)=>sortDir.asc?a[col]-b[col]:b[col]-a[col]);
+  renderTabla(pls);
+}
+function sortT(col) { sortByCol(col); }
+function filterT() {
+  const q = document.getElementById('search-t').value.toLowerCase();
+  renderTabla(q ? players.filter(p=>p.nombre.toLowerCase().includes(q)) : players);
+}
+
+// ══════════════════════════════════════════════════════════
+// MI QUINIELA
+// ══════════════════════════════════════════════════════════
+function quickMQ(nombre) { show('miquiniela'); document.getElementById('mi-q').value=nombre; buscarMQ(); }
+
+function buscarMQ() {
+  const q = document.getElementById('mi-q').value.trim().toLowerCase();
+  if (!q) return;
+  const found = players.filter(p=>p.nombre.toLowerCase().includes(q));
+  const el = document.getElementById('mi-result');
+  if (!found.length) { el.innerHTML=`<div class="empty"><div class="icon">🔍</div><p>No encontré esa quiniela. Intenta con apellido o nombre parcial.</p></div>`; return; }
+  if (found.length>1) {
+    el.innerHTML=`<div class="card" style="margin-bottom:14px"><div class="card-hdr"><div class="card-title">Resultados (${found.length})</div></div><div style="padding:6px">${found.map(p=>`<div style="padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between" onclick="showPlayer('${p.nombre.replace(/'/g,"\\'")}')"><span>${p.nombre}</span><span style="font-family:JetBrains Mono,monospace;color:var(--verde)">${p.tot}pts · #${p.rank}</span></div>`).join('')}</div></div>`; return;
+  }
+  showPlayer(found[0].nombre);
+}
+
+function showPlayer(nombre) {
+  const p = players.find(x=>x.nombre===nombre);
+  if (!p) return;
+  const el = document.getElementById('mi-result');
+  const tot = players.length;
+  const pct = Math.round((1-(p.rank-1)/tot)*100);
+  const maxRank = Math.max(...players.map(x=>x.rank));
+  const difLabel = p.dif===0?'¡ES EL LÍDER! 🥇':p.dif<0?`${p.dif} del líder`:`+${p.dif}`;
+
+  // Build group match cards from quinielaRows
+  const matchCards = buildMatchCards(nombre);
+  // Build bracket
+  const bracket = buildBracket(nombre);
+
+  el.innerHTML = `
+  <div class="profile-card">
+    <div class="profile-name">${p.nombre}</div>
+    <div class="profile-rank">${p.rank<=3?['🥇','🥈','🥉'][p.rank-1]+' ':''}Posición #${p.rank} de ${tot} · Top ${pct}%</div>
+    <div class="pstats">
+      <div class="pstat"><div class="val">${p.tot}</div><div class="lbl">Puntos totales</div></div>
+      <div class="pstat"><div class="val">${p.marc}</div><div class="lbl">Marcadores exactos</div></div>
+      <div class="pstat"><div class="val">${p.r1+p.r2+p.r3}</div><div class="lbl">Pts resultados</div></div>
+      <div class="pstat"><div class="val" style="color:var(--verde)">+${p.gpos}</div><div class="lbl">Bonus grupos</div></div>
+      <div class="pstat"><div class="val" style="color:${p.dif===0?'var(--dorado)':'var(--text2)'};font-size:16px">${difLabel}</div><div class="lbl">Diferencia líder</div></div>
+    </div>
+  </div>
+
+  ${matchCards}
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-hdr"><div class="card-title">🏆 Bracket Eliminatorio</div><div style="font-size:11px;color:var(--text3)">Pronósticos de ${p.nombre.split(' ')[0]}</div></div>
+    <div style="padding:16px">${bracket}</div>
+  </div>
+
+  <div style="margin-top:12px;padding:12px 16px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);font-size:12px;color:var(--text2)">
+    💬 ¿Quieres saber más sobre esta quiniela?
+    <button class="btn" style="font-size:11px;padding:5px 12px;margin-left:10px" onclick="show('claudinho');setTimeout(()=>{document.getElementById('chat-in').value='Analiza la quiniela de ${p.nombre.split(' ')[0]}';sendChat()},300)">Preguntarle a Claudinho</button>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// MATCH CARDS — parse from Quinielas 2026
+// ══════════════════════════════════════════════════════════
+const GRUPOS_INFO = {
+  A:{teams:['México','Sudáfrica','Korea','Chequia'],matches:['México vs Sudáfrica','Korea vs Chequia','México vs Korea','Chequia vs Sudáfrica','Chequia vs México','Korea vs Sudáfrica']},
+  B:{teams:['Canadá','Bosnia','Catar','Suiza'],matches:['Canadá vs Bosnia','Catar vs Suiza','Canadá vs Catar','Suiza vs Bosnia','Suiza vs Canadá','Catar vs Bosnia']},
+  C:{teams:['Brasil','Marruecos','Haití','Escocia'],matches:['Brasil vs Marruecos','Haití vs Escocia','Brasil vs Haití','Escocia vs Marruecos','Escocia vs Brasil','Haití vs Marruecos']},
+  D:{teams:['USA','Paraguay','Australia','Turquía'],matches:['USA vs Paraguay','Australia vs Turquía','USA vs Australia','Turquía vs Paraguay','Turquía vs USA','Australia vs Paraguay']},
+  E:{teams:['Alemania','Curazao','C.Marfil','Ecuador'],matches:['Alemania vs Curazao','C.Marfil vs Ecuador','Alemania vs C.Marfil','Ecuador vs Curazao','Ecuador vs Alemania','C.Marfil vs Curazao']},
+  F:{teams:['Holanda','Japón','Suecia','Tunisia'],matches:['Holanda vs Japón','Suecia vs Tunisia','Holanda vs Suecia','Tunisia vs Japón','Tunisia vs Holanda','Suecia vs Japón']},
+  G:{teams:['Bélgica','Egipto','Irán','N.Zelanda'],matches:['Bélgica vs Egipto','Irán vs N.Zelanda','Bélgica vs Irán','N.Zelanda vs Egipto','N.Zelanda vs Bélgica','Irán vs Egipto']},
+  H:{teams:['España','Cabo Verde','Arabia','Uruguay'],matches:['España vs Cabo Verde','Arabia vs Uruguay','España vs Arabia','Uruguay vs Cabo Verde','Uruguay vs España','Arabia vs Cabo Verde']},
+  I:{teams:['Francia','Senegal','Irak','Noruega'],matches:['Francia vs Senegal','Irak vs Noruega','Francia vs Irak','Noruega vs Senegal','Noruega vs Francia','Irak vs Senegal']},
+  J:{teams:['Argentina','Algeria','Austria','Jordania'],matches:['Argentina vs Algeria','Austria vs Jordania','Argentina vs Austria','Jordania vs Algeria','Jordania vs Argentina','Austria vs Algeria']},
+  K:{teams:['Portugal','RD Congo','Uzbekistán','Colombia'],matches:['Portugal vs RD Congo','Uzbekistán vs Colombia','Portugal vs Uzbekistán','Colombia vs RD Congo','Colombia vs Portugal','Uzbekistán vs RD Congo']},
+  L:{teams:['Inglaterra','Croacia','Ghana','Panamá'],matches:['Inglaterra vs Croacia','Ghana vs Panamá','Inglaterra vs Ghana','Panamá vs Croacia','Panamá vs Inglaterra','Ghana vs Croacia']},
+};
+
+// Real results placeholder — will be filled from sheet when available
+const RESULTADOS_REALES = {};
+
+function buildMatchCards(nombre) {
+  // Find player row in quinielaRows
+  let playerRow = null;
+  for (const r of quinielaRows) {
+    if (r[4] && r[4].trim() === nombre) { playerRow = r; break; }
+    if (r[4] && nombre.includes(r[4].trim()) && r[4].trim().length > 3) { playerRow = r; break; }
+  }
+
+  if (!playerRow) {
+    return `<div class="card" style="margin-top:14px"><div style="padding:16px;font-size:13px;color:var(--text3)">
+      📋 Pronósticos partido por partido cargando desde Quinielas 2026...
+      <br>Los datos de marcadores se muestran cuando el partido tiene resultado.</div></div>`;
+  }
+
+  // Parse scores from columns — Quinielas sheet has scores starting at col ~17 (R+col)
+  // Groups A-L, each group has 6 matches × 3 cols (score1, score2, pts)
+  // Starting col = 17 for Group A
+  let html = '<div style="margin-top:14px">';
+  let col = 17; // approximate start of group A scores in Quinielas 2026
+  const groups = Object.entries(GRUPOS_INFO);
+
+  groups.forEach(([letra, gInfo]) => {
+    html += `<div class="ggroup"><div class="gg-title">Grupo ${letra}</div><div class="matches-grid">`;
+    gInfo.matches.forEach((matchName, mi) => {
+      const s1raw = playerRow[col+mi*3] !== undefined ? playerRow[col+mi*3] : '';
+      const s2raw = playerRow[col+mi*3+1] !== undefined ? playerRow[col+mi*3+1] : '';
+      const ptsRaw = playerRow[col+mi*3+2] !== undefined ? playerRow[col+mi*3+2] : '';
+      const pts = parseInt(ptsRaw) || 0;
+
+      const s1 = s1raw.trim();
+      const s2 = s2raw.trim();
+
+      // Pendiente = celdas vacías O ptsRaw también vacío (partido no jugado)
+      const pending = s1 === '' || s2 === '' || ptsRaw.trim() === '';
+
+      let ptsClass, ptsLabel, scoreDisplay;
+      if (pending) {
+        ptsClass = 'b-pend'; ptsLabel = '⏳ Pendiente';
+        scoreDisplay = `${s1||'?'} - ${s2||'?'}`;
+      } else if (pts === 4) {
+        ptsClass = 'b-exact'; ptsLabel = '⭐ +4 Exacto';
+        scoreDisplay = `${s1} - ${s2}`;
+      } else if (pts === 1) {
+        ptsClass = 'b-result'; ptsLabel = '✓ +1 Resultado';
+        scoreDisplay = `${s1} - ${s2}`;
+      } else if (pts > 0) {
+        ptsClass = 'b-result'; ptsLabel = `✓ +${pts}`;
+        scoreDisplay = `${s1} - ${s2}`;
+      } else {
+        ptsClass = 'b-miss'; ptsLabel = '✗ Fallo';
+        scoreDisplay = `${s1} - ${s2}`;
+      }
+      const teams = matchName.split(' vs ');
+      html += `<div class="match-card">
+        <div class="match-teams">
+          <span class="team-name">${teams[0]}</span>
+          <span class="match-score" style="${pending?'color:var(--text3)':''}">${scoreDisplay}</span>
+          <span class="team-name right">${teams[1]}</span>
+        </div>
+        <div class="match-result">
+          <span style="color:var(--text3);font-size:10px">Partido ${mi+1}</span>
+          <span class="badge ${ptsClass}">${ptsLabel}</span>
+        </div>
+      </div>`;
+    });
+    html += '</div></div>';
+    col += 18; // 6 matches × 3 cols per group
+  });
+
+  // === CLASIFICADOS 1ro y 2do POR GRUPO ===
+  // After 12 groups × 18 cols = 216 cols from start (col 17 + 216 = col 233)
+  // Each group has: 1ro, 2do, [pts_bonus] = 3 cols, with a separator every 3
+  // From header row: 1ro,2do,,1ro,2do,, repeated 12 times
+  const clasiStart = col; // col is now at 17 + 216 = 233 after all groups
+
+  // Find 1ro columns from header row for accuracy
+  let col1ro = [];
+  const hdr = quinielaRows.find(r => r.some(c => c && c.trim() === '1ro'));
+  if (hdr) hdr.forEach((v,i) => { if (v && v.trim()==='1ro') col1ro.push(i); });
+
+  if (col1ro.length >= 12) {
+    const gLetras = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+    html += `
+    <div style="margin:20px 0 8px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--dorado);margin-bottom:10px">
+        🏅 Clasificados por Grupo
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+        ${gLetras.map((letra, gi) => {
+          const c = col1ro[gi];
+          const prim = playerRow[c]?.trim() || '';
+          const seg  = playerRow[c+1]?.trim() || '';
+          const ptsBono = parseInt(playerRow[c+2]) || 0;
+          const p1 = (!prim || prim==='0') ? '?' : prim;
+          const p2 = (!seg  || seg==='0')  ? '?' : seg;
+          const badgePrim = ptsBono===4?'<span class="badge b-exact" style="font-size:9px">⭐+4</span>':ptsBono>0?'<span class="badge b-result" style="font-size:9px">✓</span>':p1!=='?'?'<span class="badge b-pend" style="font-size:9px">⏳</span>':'';
+          return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+            <div style="padding:4px 10px;background:var(--bg4);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--dorado);display:flex;justify-content:space-between">
+              <span>Grupo ${letra}</span>${badgePrim}
+            </div>
+            <div style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;display:flex;align-items:center;gap:6px">
+              <span style="color:var(--dorado)">🥇</span><span>${p1}</span>
+            </div>
+            <div style="padding:6px 10px;font-size:11px;display:flex;align-items:center;gap:6px">
+              <span style="color:#C0C0C0">🥈</span><span>${p2}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function buildBracket(nombre) {
+  let row = null;
+  for (const r of quinielaRows) {
+    if (r[4] && r[4].trim() === nombre) { row = r; break; }
+  }
+  if (!row) return '<p style="color:var(--text3);font-size:13px">Datos del bracket cargando desde el sheet...</p>';
+
+  // Structure at end of each row (from Claude Cache notes):
+  // After all group matches + 1ro/2do per group:
+  // Terceros (8 teams), then Octavos (16 teams = 8 matches × 2 teams + pts),
+  // Cuartos (8 teams = 4 matches × 2), Semis (4 teams), Finalistas (2), 3er, Campeón
+  //
+  // Pattern found in data rows (last ~60 cols):
+  // [Terceros x8], 0, [Oct1T1,Oct1T2,Oct1pts, Oct2T1,Oct2T2,Oct2pts, ...×8], 0,
+  // [Cto1T1,Cto1T2,Cto1pts, ...×4], 0,
+  // [S1,S2,S3,S4], 0, [F1,F2], 0, [3er], [Camp]
+
+  // Find champion (last meaningful non-zero non-numeric value)
+  let champIdx = row.length - 1;
+  while (champIdx > 0 && (!row[champIdx] || row[champIdx].trim() === '0' || row[champIdx].trim() === '')) champIdx--;
+  const champ = row[champIdx]?.trim() || '?';
+  const third = (() => {
+    let i = champIdx - 1;
+    while (i > 0 && (!row[i] || row[i].trim() === '0' || row[i].trim() === '')) i--;
+    return row[i]?.trim() || '?';
+  })();
+
+  // Work backwards from champion to find semis, cuartos, octavos
+  // Semis: 4 teams before third/champ block
+  // Find the block separator (usually '0') before champ
+  const getTeams = (fromIdx, count) => {
+    const teams = [];
+    let i = fromIdx;
+    let found = 0;
+    while (i >= 0 && found < count) {
+      const v = row[i]?.trim();
+      if (v && v !== '0' && !/^\d+$/.test(v) && v.length > 1) {
+        teams.unshift(v);
+        found++;
+      }
+      i--;
+    }
+    return teams;
+  };
+
+  // Parse bracket sections by scanning backwards
+  // Champion is at champIdx, 3er at ~champIdx-2
+  // Finalistas: 2 teams before 3er block
+  // Semis: 4 teams before finalistas
+  // Cuartos: 8 teams before semis
+  // Octavos: 16 teams before cuartos
+
+  // Simpler approach: find all non-numeric, non-zero values near the end
+  const endData = [];
+  for (let i = Math.max(0, champIdx - 80); i <= champIdx; i++) {
+    const v = row[i]?.trim();
+    if (v && v !== '0' && !/^\d+$/.test(v) && v.length > 1 && !['pts','R1','R2','R3','R4'].includes(v)) {
+      endData.push({ idx: i, val: v });
+    }
+  }
+
+  // From the known structure at end of row (Marcela example):
+  // ...Turquía,Suecia,Suiza,Cabo Verde,Escocia,Senegal,Jordania,Ghana (8 terceros)
+  // ,0, Alemania,Francia, Korea,Holanda, Inglaterra,España, USA,Bélgica, Brasil,Noruega, México,Croacia, Argentina,Egipto, Canadá,Portugal (16 oct = 8×2)
+  // ,0, Francia,Holanda, España,Bélgica, Brasil,Croacia, Argentina,Portugal (8 cto = 4×2)
+  // ,0, Francia,España, Croacia,Argentina (4 semis)
+  // ,0, España,Argentina (2 finalistas)
+  // ,0, Francia,España (3er,camp)
+
+  // Count back: champ at end, before it 3er, before that finalistas (2), semis (4), cuartos (8), octavos (16)
+  const all = endData.map(d => d.val);
+  const total = all.length;
+
+  // Last 2 = [3er, champ] (but we already have those)
+  // Before that: 2 finalistas
+  // Before that: 4 semis
+  // Before that: 8 cuartos
+  // Before that: 16 octavos
+  // Before that: 8 terceros
+
+  const camp2 = all.slice(-2);   // [3er, campeón]
+  const fin2  = all.slice(-4, -2); // 2 finalistas
+  const semi4 = all.slice(-8, -4); // 4 semifinalistas
+  const cto8  = all.slice(-16,-8); // 8 cuartofinalistas
+  const oct16 = all.slice(-32,-16);// 16 octavistas
+  const ter8  = all.slice(-40,-32);// 8 terceros lugares
+
+  const t = (val, isWinner=false) => {
+    const empty = !val || val === '?' || val === '0';
+    return `<div class="bt ${isWinner?'bw':''} ${empty?'btbd':''}">
+      <span>${empty ? '?' : val}</span>
+    </div>`;
+  };
+
+  // Build octavos pairs (8 matches)
+  const octPairs = [];
+  for (let i = 0; i < oct16.length; i += 2) octPairs.push([oct16[i]||'?', oct16[i+1]||'?']);
+  // Build cuartos pairs (4 matches)
+  const ctoPairs = [];
+  for (let i = 0; i < cto8.length; i += 2) ctoPairs.push([cto8[i]||'?', cto8[i+1]||'?']);
+  // Semis pairs
+  const semiPairs = [[semi4[0]||'?', semi4[1]||'?'], [semi4[2]||'?', semi4[3]||'?']];
+  const finalist1 = fin2[0]||'?', finalist2 = fin2[1]||'?';
+  const champion = camp2[1]||champ, thirdPlace = camp2[0]||third;
+
+  return `
+  <style>
+  .bracket-full{overflow-x:auto;padding:8px 0}
+  .bracket-scroll{display:flex;gap:0;min-width:900px;align-items:flex-start}
+  .bround{display:flex;flex-direction:column;min-width:130px;padding:0 6px}
+  .bround-title{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);text-align:center;margin-bottom:10px;font-weight:600;padding:4px 0;border-bottom:1px solid var(--border)}
+  .bmatches{display:flex;flex-direction:column;gap:6px}
+  .bmatch{background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:4px}
+  .bt{padding:5px 8px;font-size:11px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+  .bt:last-child{border-bottom:none}
+  .bw{background:rgba(0,200,83,.1);color:var(--verde);font-weight:600}
+  .btbd{color:var(--text3);font-style:italic}
+  .bchamp{text-align:center;padding:12px 8px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:8px;margin-top:4px}
+  .bchamp .team{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--dorado);display:block;margin-top:4px}
+  .b3rd{text-align:center;padding:8px;background:rgba(205,127,50,.08);border:1px solid rgba(205,127,50,.3);border-radius:8px;margin-top:4px}
+  .b3rd .team{font-family:'Bebas Neue',sans-serif;font-size:14px;color:#CD7F32;display:block;margin-top:3px}
+  .terceros-wrap{display:flex;flex-wrap:wrap;gap:4px;padding:8px}
+  .tercero-tag{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 7px;font-size:10px;color:var(--text2)}
+  </style>
+
+  <div class="bracket-full">
+  <div style="font-size:11px;color:var(--text3);margin-bottom:12px">📜 Terceros de grupo pronosticados por ${nombre.split(' ')[0]}:</div>
+  <div class="terceros-wrap" style="margin-bottom:16px">
+    ${ter8.length > 0 ? ter8.map(t => `<span class="tercero-tag">${t}</span>`).join('') : '<span style="color:var(--text3);font-size:11px">Sin datos</span>'}
+  </div>
+
+  <div class="bracket-scroll">
+    <div class="bround">
+      <div class="bround-title">Octavos (8)</div>
+      <div class="bmatches">
+        ${octPairs.map(([a,b]) => `<div class="bmatch">${t(a)}${t(b)}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bround">
+      <div class="bround-title">Cuartos (4)</div>
+      <div class="bmatches" style="justify-content:space-around;height:100%">
+        ${ctoPairs.length > 0
+          ? ctoPairs.map(([a,b]) => `<div class="bmatch" style="margin-bottom:16px">${t(a)}${t(b)}</div>`).join('')
+          : '<div style="color:var(--text3);font-size:11px;padding:8px">Sin datos</div>'}
+      </div>
+    </div>
+
+    <div class="bround">
+      <div class="bround-title">Semis (2)</div>
+      <div class="bmatches" style="justify-content:space-around;height:100%">
+        <div class="bmatch" style="margin-bottom:32px">${t(semiPairs[0][0])}${t(semiPairs[0][1])}</div>
+        <div class="bmatch">${t(semiPairs[1][0])}${t(semiPairs[1][1])}</div>
+      </div>
+    </div>
+
+    <div class="bround">
+      <div class="bround-title">Final</div>
+      <div class="bmatches" style="justify-content:center;padding-top:20px">
+        <div class="bmatch">${t(finalist1, finalist1===champion)}${t(finalist2, finalist2===champion)}</div>
+      </div>
+    </div>
+
+    <div class="bround">
+      <div class="bround-title">🏆 Campeón</div>
+      <div style="padding-top:16px">
+        <div class="bchamp">
+          <span style="font-size:10px;color:var(--text3)">CAMPEÓN DEL MUNDO</span>
+          <span class="team">${champion === '?' ? '¿?' : champion}</span>
+        </div>
+        <div class="b3rd" style="margin-top:8px">
+          <span style="font-size:9px;color:var(--text3)">TERCER LUGAR</span>
+          <span class="team" style="font-size:13px">${thirdPlace === '?' ? '¿?' : thirdPlace}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// PROFETAS — Champion & bracket distribution
+// ══════════════════════════════════════════════════════════
+function buildProfetas() {
+  if (!quinielaRows.length) { document.getElementById('profetas-cont').innerHTML='<div class="empty"><p>Cargando datos...</p></div>'; return; }
+
+  const champCount={}, thirdCount={}, semi={};
+  let total=0;
+  for (const r of quinielaRows) {
+    if (!r[4]||!r[4].trim()||r[4].trim().startsWith('#')) continue;
+    let champCol=r.length-1;
+    while(champCol>0&&(!r[champCol]||r[champCol].trim()==='0'||r[champCol].trim()===''))champCol--;
+    const champ=r[champCol]?.trim();
+    if(champ&&champ!=='0'&&champ.length>2&&!/^\d/.test(champ)){
+      champCount[champ]=(champCount[champ]||0)+1;
+      total++;
+    }
+    const third=r[champCol-1]?.trim();
+    if(third&&third!=='0'&&third.length>2&&!/^\d/.test(third)) thirdCount[third]=(thirdCount[third]||0)+1;
+    // semis — 4 entries before champ
+    for(let s=5;s>=2;s--){
+      const t=r[champCol-s]?.trim();
+      if(t&&t!=='0'&&t.length>2&&!/^\d/.test(t)) semi[t]=(semi[t]||0)+1;
+    }
+  }
+
+  if(!total){document.getElementById('profetas-cont').innerHTML='<div class="empty"><p>No se encontraron datos de pronósticos eliminatorios.</p></div>';return;}
+
+  const champSorted=Object.entries(champCount).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const semiSorted=Object.entries(semi).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const thirdSorted=Object.entries(thirdCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxC=champSorted[0]?.[1]||1;
+  const maxS=semiSorted[0]?.[1]||1;
+  const maxT=thirdSorted[0]?.[1]||1;
+
+  const barHtml=(entries,max,tot,color='var(--verde)')=>entries.map(([n,c],i)=>`
+    <div class="dist-bar-row">
+      <div class="dist-name" title="${n}">${i+1}. ${n}</div>
+      <div class="dist-bar"><div class="dist-fill" style="width:${Math.round(c/max*100)}%;background:${color}"></div></div>
+      <div class="dist-count">${c}</div>
+      <div class="dist-pct">${Math.round(c/tot*100)}%</div>
+    </div>`).join('');
+
+  document.getElementById('profetas-cont').innerHTML=`
+  <div style="margin-bottom:24px">
+    <p style="color:var(--text2);font-size:13px;margin-bottom:20px">¿A quién le apostaron las 118 quinielas? Aquí la distribución completa de pronósticos eliminatorios.</p>
+  </div>
+  <div class="grid2" style="gap:20px">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">🏆 Campeón del Mundo</div><div style="font-size:11px;color:var(--text3)">${total} quinielas</div></div>
+      <div style="padding:18px">${barHtml(champSorted,maxC,total,'var(--dorado)')}</div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">🔥 Más veces en Semifinales</div><div style="font-size:11px;color:var(--text3)">acumulado</div></div>
+      <div style="padding:18px">${barHtml(semiSorted,maxS,total*4,'var(--naranja)')}</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-hdr"><div class="card-title">🥉 Pronósticos de Tercer Lugar</div></div>
+    <div style="padding:18px">${barHtml(thirdSorted,maxT,total,'#CD7F32')}</div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-hdr"><div class="card-title">😮 Rompe-Quinielas — Los Upsets</div><div style="font-size:11px;color:var(--text3)">Partidos que más sorprendieron</div></div>
+    <div style="padding:16px">
+      <div id="rompe-cont"><div class="empty"><p>Los upsets se calculan cuando hay resultados reales. ¡Mientras juegan los partidos, aquí aparecerán los que más movieron la tabla!</p></div></div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// NOMINADOS
+// ══════════════════════════════════════════════════════════
+function buildNominados() {
+  if (!players.length) return;
+  const s=[...players].sort((a,b)=>b.tot-a.tot);
+  const avg=Math.round(players.reduce((x,p)=>x+p.tot,0)/players.length);
+  const byMarc=[...players].sort((a,b)=>b.marc-a.marc);
+  const byR2=[...players].sort((a,b)=>b.r2-a.r2);
+  const byFG=[...players].sort((a,b)=>b.fg-a.fg);
+  const byGpos=[...players].sort((a,b)=>b.gpos-a.gpos);
+  const lowMarc=[...players].sort((a,b)=>a.marc-b.marc);
+  const closest=[...players].sort((a,b)=>Math.abs(a.tot-avg)-Math.abs(b.tot-avg));
+
+  // Find ties
+  const topTot=s[0].tot;
+  const topMarc=byMarc[0].marc;
+  const top3pts=s.filter(p=>p.rank<=3);
+  const top3marc=byMarc.filter(p=>p.marc===topMarc);
+
+  const nom3=(arr,key,label,suffix='')=>arr.slice(0,3).map((p,i)=>`
+    <div class="nom-item"><span>${['🥇','🥈','🥉'][i]} ${p.nombre.split(' ').slice(0,2).join(' ')}</span><span class="nom-val">${p[key]}${suffix}</span></div>`).join('');
+
+  const noms=[
+    {icon:'🎯',cat:'Precisión',title:'Más marcadores exactos',body:nom3(byMarc,'marc',' marc.')},
+    {icon:'⚽',cat:'Resultados',title:'Mejor en resultados R2',body:nom3(byR2,'r2',' pts')},
+    {icon:'🌟',cat:'Fase de Grupos',title:'Mayor puntaje fase grupos',body:nom3(byFG,'fg',' pts')},
+    {icon:'💡',cat:'Bonus',title:'Mayor bonus clasificación',body:byGpos.slice(0,3).map((p,i)=>`<div class="nom-item"><span>${['🥇','🥈','🥉'][i]} ${p.nombre.split(' ').slice(0,2).join(' ')}</span><span class="nom-val">+${p.gpos}</span></div>`).join('')},
+    {icon:'🐢',cat:'El Valiente',title:'Menos marcadores exactos',body:lowMarc.slice(0,3).map((p,i)=>`<div class="nom-item"><span>${['🥇','🥈','🥉'][i]} ${p.nombre.split(' ').slice(0,2).join(' ')}</span><span class="nom-val">${p.marc} marc.</span></div>`).join('')},
+    {icon:'📊',cat:'El Promedio',title:'Más cerca del promedio (${avg} pts)',body:closest.slice(0,3).map((p,i)=>`<div class="nom-item"><span>${['🥇','🥈','🥉'][i]} ${p.nombre.split(' ').slice(0,2).join(' ')}</span><span class="nom-val">${p.tot} pts</span></div>`).join('')},
+    {icon:'🚀',cat:'Rendimiento R1',title:'Mejor primera ronda',body:nom3([...players].sort((a,b)=>b.r1-a.r1),'r1',' pts')},
+    {icon:'📈',cat:'Combinado',title:'Mejor marcadores + resultado',body:[...players].sort((a,b)=>(b.marc+b.r1+b.r2+b.r3)-(a.marc+a.r1+a.r2+a.r3)).slice(0,3).map((p,i)=>`<div class="nom-item"><span>${['🥇','🥈','🥉'][i]} ${p.nombre.split(' ').slice(0,2).join(' ')}</span><span class="nom-val">${p.marc+p.r1+p.r2+p.r3}</span></div>`).join('')},
+  ];
+
+  document.getElementById('nom-cont').innerHTML=noms.map(n=>`
+    <div class="nom-card">
+      <div class="nom-icon">${n.icon}</div>
+      <div class="nom-cat">${n.cat}</div>
+      <div class="nom-title">${n.title.replace('${avg}',avg)}</div>
+      ${n.body}
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// GRUPOS
+// ══════════════════════════════════════════════════════════
+function buildGrupos() {
+  if(!quinielaRows.length){document.getElementById('grupos-cont').innerHTML='<div class="empty"><p>Cargando...</p></div>';return;}
+  const grupos=Object.keys(GRUPOS_INFO);
+  let headerRow=-1,col1ro=[];
+  for(let i=0;i<Math.min(4,quinielaRows.length);i++){
+    const r=quinielaRows[i];
+    const idxs=r.reduce((a,c,i)=>{if(c&&c.trim()==='1ro')a.push(i);return a;},[]);
+    if(idxs.length>=6){col1ro=idxs;headerRow=i;break;}
+  }
+  if(!col1ro.length){document.getElementById('grupos-cont').innerHTML='<div class="empty"><p>Estructura de grupos no encontrada. Los datos de clasificación se muestran en la pestaña TablaControl.</p></div>';return;}
+
+  const counts={};
+  grupos.forEach((g,gi)=>{counts[g]={f:{},s:{}};});
+  for(let i=headerRow+1;i<quinielaRows.length;i++){
+    const r=quinielaRows[i];
+    if(!r[4]||!r[4].trim()||r[4].trim().startsWith('#'))continue;
+    col1ro.forEach((col,gi)=>{
+      if(gi>=12)return;
+      const g=grupos[gi];
+      const f=r[col]?.trim(),s=r[col+1]?.trim();
+      if(f&&f!=='0'&&!/^\d/.test(f))counts[g].f[f]=(counts[g].f[f]||0)+1;
+      if(s&&s!=='0'&&!/^\d/.test(s))counts[g].s[s]=(counts[g].s[s]||0)+1;
+    });
+  }
+  const tot=players.length||118;
+  document.getElementById('grupos-cont').innerHTML=grupos.map(letra=>{
+    const d=counts[letra]||{f:{},s:{}};
+    const fs=Object.entries(d.f).sort((a,b)=>b[1]-a[1]).slice(0,4);
+    const ss=Object.entries(d.s).sort((a,b)=>b[1]-a[1]).slice(0,4);
+    const mf=fs[0]?.[1]||1,ms=ss[0]?.[1]||1;
+    return `<div class="grupo-box">
+      <div class="grupo-box-hdr"><span>Grupo ${letra}</span><span style="font-size:10px;color:var(--text3)">${GRUPOS_INFO[letra].teams.join(' · ')}</span></div>
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+        <div style="font-size:10px;color:var(--dorado);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">🥇 1er lugar</div>
+        ${fs.map(([t,c])=>`<div class="dist-bar-row" style="margin-bottom:6px"><div class="dist-name">${t}</div><div class="dist-bar"><div class="dist-fill" style="width:${Math.round(c/mf*100)}%"></div></div><div class="dist-count">${c}</div><div class="dist-pct">${Math.round(c/tot*100)}%</div></div>`).join('')}
+      </div>
+      <div style="padding:10px 14px">
+        <div style="font-size:10px;color:#A0A0C0;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">🥈 2do lugar</div>
+        ${ss.map(([t,c])=>`<div class="dist-bar-row" style="margin-bottom:6px"><div class="dist-name">${t}</div><div class="dist-bar"><div class="dist-fill" style="width:${Math.round(c/ms*100)}%;background:rgba(0,200,83,.5)"></div></div><div class="dist-count">${c}</div><div class="dist-pct">${Math.round(c/tot*100)}%</div></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// DATOS CURIOSOS
+// ══════════════════════════════════════════════════════════
+function buildFacts() {
+  if(!players.length)return;
+  const s=[...players].sort((a,b)=>b.tot-a.tot);
+  const avg=Math.round(players.reduce((x,p)=>x+p.tot,0)/players.length);
+  const leader=s[0],last=s[s.length-1];
+  const topMarc=[...players].sort((a,b)=>b.marc-a.marc)[0];
+  const lowMarc=[...players].sort((a,b)=>a.marc-b.marc)[0];
+  const belowAvg=players.filter(p=>p.tot<avg).length;
+  const topFG=[...players].sort((a,b)=>b.fg-a.fg)[0];
+  const tied1=s.filter(p=>p.rank===1).length;
+  const spread=leader.tot-last.tot;
+  const within5=players.filter(p=>Math.abs(p.tot-avg)<=5).length;
+  const byFam={};
+  players.forEach(p=>{const base=p.nombre.replace(/\s+\d+$/,'').trim();byFam[base]=(byFam[base]||0)+1;});
+  const maxFam=Object.entries(byFam).sort((a,b)=>b[1]-a[1])[0];
+  const topGpos=[...players].sort((a,b)=>b.gpos-a.gpos)[0];
+  const noGpos=players.filter(p=>p.gpos===0).length;
+
+  const facts=[
+    {icon:'📏',text:`La diferencia entre el <strong>1er y el último lugar</strong> es de <strong>${spread} puntos</strong> — de ${leader.nombre.split(' ')[0]} (${leader.tot}) a ${last.nombre.split(' ')[0]} (${last.tot}).`},
+    {icon:'🎯',text:`<strong>${topMarc.nombre.split(' ')[0]}</strong> acertó <strong>${topMarc.marc} marcadores exactos</strong>, mientras que <strong>${lowMarc.nombre.split(' ')[0]}</strong> solo acertó ${lowMarc.marc}.`},
+    {icon:'📊',text:`<strong>${within5}</strong> de ${players.length} quinieleiros están a menos de 5 puntos del promedio (${avg} pts). ¡La cosa está apretada!`},
+    {icon:'🌟',text:`<strong>${topFG.nombre.split(' ')[0]}</strong> lleva el mejor puntaje en fase de grupos con <strong>${topFG.fg} puntos</strong> (R1+R2+R3+bonus).`},
+    {icon:'👨‍👩‍👧‍👦',text:maxFam[1]>1?`La familia más numerosa: <strong>${maxFam[0]}</strong> con <strong>${maxFam[1]} quinielas</strong> en el torneo.`:`Hay ${players.length} quinieleiros únicos — ¡todos con su propio pronóstico!`},
+    {icon:'💡',text:`<strong>${topGpos.nombre.split(' ')[0]}</strong> ganó el mayor bonus de fase de grupos: <strong>+${topGpos.gpos} puntos</strong> por acertar clasificados.`},
+    {icon:'🤝',text:`<strong>${noGpos}</strong> quinieleiros no obtuvieron puntos de bonus en fase de grupos — significa que sus pronósticos de clasificación fallaron.`},
+    {icon:'🔢',text:tied1>1?`Actualmente hay <strong>${tied1} quinielas empatadas en el 1er lugar</strong>. ¡Cualquier partido puede cambiar el liderato!`:`Solo <strong>${leader.nombre.split(' ')[0]}</strong> lleva el 1er lugar — con ${Math.abs(leader.dif)===0?'0':Math.abs(s[1]?.tot-leader.tot)} pts de ventaja.`},
+    {icon:'📉',text:`<strong>${belowAvg}</strong> de ${players.length} quinieleiros están por debajo del promedio de ${avg} puntos.`},
+    {icon:'🏆',text:`El que acaba ÚLTIMO también gana un reconocimiento especial en la quiniela. ¡${last.nombre.split(' ')[0]}, aguanta! 💪`},
+  ];
+
+  document.getElementById('facts-cont').innerHTML=facts.map(f=>`
+    <div class="fact-card">
+      <div class="fact-icon">${f.icon}</div>
+      <div><div class="fact-text">${f.text}</div></div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// CRÓNICA — auto-generada por Claudinho
+// ══════════════════════════════════════════════════════════
+async function genComment() {
+  const today = new Date().toLocaleDateString('es-MX', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('comment-date').textContent = today;
+  if (!players.length) { document.getElementById('comment-body').textContent = 'Cargando datos...'; return; }
+
+  const s = [...players].sort((a,b) => b.tot-a.tot);
+  const leader = s[0], last = s[s.length-1];
+  const avg = Math.round(players.reduce((x,p) => x+p.tot, 0) / players.length);
+  const topMarc = [...players].sort((a,b) => b.marc-a.marc)[0];
+
+  // Fallback inmediato mientras carga la IA
+  document.getElementById('comment-headline').textContent = `📰 ${leader.nombre.split(' ')[0]} lidera con ${leader.tot} puntos`;
+  document.getElementById('comment-body').innerHTML = `<strong>${leader.nombre}</strong> marcha al frente con <strong>${leader.tot} puntos</strong>. Promedio del grupo: <strong>${avg} pts</strong>. El más exacto: <strong>${topMarc.nombre.split(' ')[0]}</strong> con ${topMarc.marc} marcadores. <em>Cargando análisis completo de Claudinho...</em>`;
+
+  try {
+    const system = `Eres Claudinho, un niño quinieleiro brasileño de 10 años con mucha energía. Escribes la crónica diaria de la quiniela WC 2026. Estilo: emocionante, con portugués mezclado (minha gente, caramba, olha só, nossa), emojis estratégicos, datos concretos. NO menciones dinero ni premios. Di "quinieleiros". Responde SOLO con JSON válido sin markdown: {"headline":"...","body":"..."}`;
+    const txt = await callClaude(system, `Hoy es ${today}. Escribe la crónica con estos datos:\n${getContext()}\nJSON only, sin backticks.`, 600);
+    const clean = txt.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    if (parsed.headline) document.getElementById('comment-headline').textContent = parsed.headline;
+    if (parsed.body) document.getElementById('comment-body').innerHTML = parsed.body;
+  } catch(e) {
+    console.warn('Crónica fallback:', e.message);
+    // Keep the fallback already shown
+    document.getElementById('comment-body').innerHTML = `<strong>${leader.nombre}</strong> lidera con <strong>${leader.tot} pts</strong>. 
+      El promedio está en ${avg} pts y <strong>${topMarc.nombre.split(' ')[0]}</strong> es el más afinado con ${topMarc.marc} marcadores exactos. 
+      En el fondo, <strong>${last.nombre.split(' ')[0]}</strong> aguanta con ${last.tot} pts. ¡El torneo está apenas comenzando!`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// CLAUDINHO CHAT
+// ══════════════════════════════════════════════════════════
+function getContext() {
+  if(!players.length) return 'Sin datos.';
+  const s=[...players].sort((a,b)=>b.tot-a.tot);
+  const avg=Math.round(players.reduce((x,p)=>x+p.tot,0)/players.length);
+  const topMarc=[...players].sort((a,b)=>b.marc-a.marc)[0];
+  return `QUINIELA FIFA WC 2026 — ${players.length} quinieleiros
+Fase: Grupos en curso
+Líder: ${s[0].nombre} (${s[0].tot}pts)
+Último: ${s[s.length-1].nombre} (${s[s.length-1].tot}pts)
+Promedio: ${avg}pts
+Más marcadores exactos: ${topMarc.nombre} (${topMarc.marc})
+TOP 10:\n${s.slice(0,10).map(p=>`#${p.rank} ${p.nombre}: ${p.tot}pts (marc:${p.marc}, R2:${p.r2})`).join('\n')}
+TODOS (nombre:total:rank):\n${players.map(p=>`${p.nombre}:${p.tot}:#${p.rank}`).join('\n')}`;
+}
+
+async function callClaude(system, userMsg, maxTokens=800) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: maxTokens,
+      system: system,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data.content?.[0]?.text || '';
+}
+
+async function sendChat() {
+  const inp = document.getElementById('chat-in');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  appendMsg('user', msg); inp.value = '';
+  document.getElementById('chat-send').disabled = true;
+  const tid = appendTyping();
+  try {
+    const system = `Eres Claudinho, un niño quinieleiro brasileño de 10 años, muy emocionado con el Mundial. Mezclas español con expresiones en portugués (minha gente, caramba, olha só, nossa, que loucura, eita). Usas emojis con moderación. Eres preciso con datos. Respuestas concisas (3-4 oraciones). NO menciones dinero ni premios. Di "quinieleiros" para referirte a los participantes.\n${getContext()}`;
+    const txt = await callClaude(system, msg);
+    removeTyping(tid);
+    appendMsg('bot', txt);
+  } catch(e) {
+    removeTyping(tid);
+    console.error('Claudinho error:', e);
+    appendMsg('bot', `⚠️ Error: ${e.message}. Revisa la consola para más detalles.`);
+  }
+  document.getElementById('chat-send').disabled = false;
+}
+
+function sendQ(t){document.getElementById('chat-in').value=t;sendChat();}
+
+function appendMsg(role,txt) {
+  const el=document.getElementById('chat-msgs');
+  const t=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  const d=document.createElement('div');
+  d.className=`msg ${role}`;
+  d.innerHTML=`<div class="mbub">${txt.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div><div class="mtime">${t}</div>`;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+let _tc=0;
+function appendTyping(){
+  _tc++;const id=_tc;const el=document.getElementById('chat-msgs');
+  const d=document.createElement('div');d.className='msg bot';d.id=`typ-${id}`;
+  d.innerHTML='<div class="mbub"><div class="typing"><span></span><span></span><span></span></div></div>';
+  el.appendChild(d);el.scrollTop=el.scrollHeight;return id;
+}
+function removeTyping(id){const e=document.getElementById(`typ-${id}`);if(e)e.remove();}
+
+// ══════════════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════════════
+function show(id) {
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('btn-'+id).classList.add('active');
+  if(id==='nominados'&&players.length) buildNominados();
+  if(id==='profetas'&&quinielaRows.length) buildProfetas();
+  if(id==='grupos'&&quinielaRows.length) buildGrupos();
+  if(id==='curiosos'&&players.length) buildFacts();
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+let isLoading = false;
+
+async function init() {
+  if (isLoading) return;
+  isLoading = true;
+  document.getElementById('tabla-cont').innerHTML = '<div class="loading"><div class="spinner"></div><p>Conectando con Google Sheets...</p></div>';
+  try {
+    await loadAll();
+  } catch(e) {
+    console.error('Init error:', e);
+    document.getElementById('tabla-cont').innerHTML = `<div class="empty">
+      <div class="icon">⚠️</div>
+      <p style="font-size:14px;font-weight:600;margin-bottom:8px">No se pudo conectar</p>
+      <p style="font-size:12px;color:var(--text3);max-width:400px;margin:0 auto 14px">${e.message}</p>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:14px">
+        Verifica que el sheet esté publicado: Archivo → Compartir → Publicar en la web → CSV
+      </p>
+      <button class="btn" onclick="isLoading=false;init()">🔄 Reintentar</button>
+    </div>`;
+  } finally {
+    isLoading = false;
+  }
+}
+
+// Auto-refresh cada 15 min solo en horario diurno y si no está cargando
+window.addEventListener('DOMContentLoaded', init);
+setInterval(() => {
+  const h = new Date().getHours();
+  if (h >= 7 && h < 23 && !isLoading) {
+    loadAll().catch(e => console.warn('Auto-refresh falló:', e.message));
+  }
+}, 15 * 60 * 1000);
+</script>
+</body>
+</html>
