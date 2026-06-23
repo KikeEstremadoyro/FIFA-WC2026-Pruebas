@@ -185,7 +185,6 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
           <option value="r1">Por R1</option>
           <option value="r2">Por R2</option>
           <option value="r3">Por R3</option>
-          <option value="marc">Por marcadores exactos</option>
           <option value="gpos">Por grupos</option>
           <option value="fg">Por fase grupos total</option>
         </select>
@@ -233,6 +232,7 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
       <div class="comment-body" id="comment-b-0">Claudinho está analizando los datos del día...</div>
     </div>
     <div id="comment-extra"></div>
+    <div id="comment-history"></div>
   </div>
 </div>
 
@@ -431,7 +431,7 @@ function renderTabla(pls) {
       <th onclick="sortByCol('r1')" class="hide-mob">R1</th>
       <th onclick="sortByCol('r3')" class="hide-mob">R3</th>
       <th onclick="sortByCol('gpos')">Grupos</th>
-      <th onclick="sortByCol('fg')" class="hide-mob">Fase G.</th>
+      <th onclick="sortByCol('fg')">Fase G.</th>
     </tr></thead>
     <tbody>
     ${pls.map(p=>{
@@ -447,8 +447,8 @@ function renderTabla(pls) {
         <td style="font-family:JetBrains Mono,monospace;font-size:11px">${p.r2}</td>
         <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px">${p.r1}</td>
         <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px">${p.r3}</td>
-        <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--azul)">${p.gpos}</td>
-        <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--verde)">${p.fg}</td>
+        <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--azul)">${p.gpos}</td>
+        <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--verde)">${p.fg}</td>
       </tr>`;
     }).join('')}
     </tbody></table>`;
@@ -513,9 +513,9 @@ function showPlayer(nombre){
     <div class="profile-rank">${p.rank<=3?['🥇','🥈','🥉'][p.rank-1]+' ':''}Posición #${p.rank} de ${tot} · Top ${pct}%</div>
     <div class="pstats">
       <div class="pstat"><div class="val">${p.tot}</div><div class="lbl">Puntos totales</div></div>
-      <div class="pstat"><div class="val">${p.marc}<div class="sub">${p.exactos} exactos</div></div><div class="lbl">Pts marcadores</div></div>
-      <div class="pstat"><div class="val">${p.r1+p.r2+p.r3}<div class="sub">${p.resultados} resultados</div></div><div class="lbl">Pts resultados</div></div>
-      <div class="pstat"><div class="val" style="color:var(--azul)">${p.gpos}</div><div class="lbl">Pts grupos</div></div>
+      <div class="pstat"><div class="val">${p.marc} pts<div class="sub">${p.exactos} exactos</div></div><div class="lbl">Marcadores</div></div>
+      <div class="pstat"><div class="val">${p.r1+p.r2+p.r3} correctos</div><div class="lbl">Resultados</div></div>
+      <div class="pstat"><div class="val" style="color:var(--azul)">${p.gpos} pts lugares</div><div class="lbl">Grupos</div></div>
       <div class="pstat"><div class="val" style="color:${p.dif===0?'var(--dorado)':'var(--text2)'};font-size:14px">${difLabel}</div><div class="lbl">Vs Líder</div></div>
     </div>
   </div>
@@ -576,7 +576,7 @@ function buildMatchCards(nombre){
           <span class="match-score" style="${pending?'color:var(--text3)':''}">${score}</span>
           <span class="team-name right">${teams[1]}</span>
         </div>
-        ${hasReal&&!pending?`<div style="text-align:center;font-size:10px;color:var(--text3);margin-top:3px">Real: <strong style="color:${pts>0?'var(--verde)':'var(--rojo)'}">${realScore}</strong></div>`:''}
+        ${hasReal?`<div style="text-align:center;font-size:10px;color:var(--text3);margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.06)">Real: <strong style="color:${pts===4?'var(--dorado)':pts>0?'var(--verde)':'var(--rojo)'}">${realScore}</strong>${pts===4?' ⭐':pts>0?' ✓':' ✗'}</div>`:''}
         <div class="match-result">
           <span style="color:var(--text3);font-size:10px">P${mi+1}</span>
           <span class="badge ${cls}">${lbl}</span>
@@ -606,16 +606,17 @@ function buildMatchCards(nombre){
       // Real clasificado
       const rp1=realResults[c]?.trim()||''; const rp2=realResults[c+1]?.trim()||'';
       const realC1=(!rp1||rp1==='0')?'':rp1; const realC2=(!rp2||rp2==='0')?'':rp2;
-      const badge=ptsBono===4?'<span class="badge b-exact" style="font-size:9px">⭐+4</span>':ptsBono>0?'<span class="badge b-result" style="font-size:9px">✓</span>':n1!=='?'&&realC1?'<span class="badge b-miss" style="font-size:9px">✗</span>':n1!=='?'?'<span class="badge b-pend" style="font-size:9px">⏳</span>':'';
+      // Puntos de clasificación: 1ro=4pts, 2do=3pts — mostrar real si existe
+      const pts1Label = realC1 ? (realC1===n1 ? '<span style="color:var(--dorado);font-weight:700;font-size:10px;margin-left:4px">+4pts ✓</span>' : '<span style="color:var(--rojo);font-size:10px;margin-left:4px">✗ Real:'+realC1+'</span>') : (n1!=='?'?'<span style="color:var(--text3);font-size:9px;margin-left:4px">(+4)</span>':'');
+      const pts2Label = realC2 ? (realC2===n2 ? '<span style="color:#C0C0C0;font-weight:700;font-size:10px;margin-left:4px">+3pts ✓</span>' : '<span style="color:var(--rojo);font-size:10px;margin-left:4px">✗ Real:'+realC2+'</span>') : (n2!=='?'?'<span style="color:var(--text3);font-size:9px;margin-left:4px">(+3)</span>':'');
+      const badge=ptsBono===4?'<span class="badge b-exact" style="font-size:9px">⭐+4</span>':ptsBono>0?'<span class="badge b-result" style="font-size:9px">✓</span>':n1!=='?'&&realC1&&realC1!==n1?'<span class="badge b-miss" style="font-size:9px">✗</span>':n1!=='?'&&!realC1?'<span class="badge b-pend" style="font-size:9px">⏳</span>':'';
       return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden">
         <div style="padding:4px 10px;background:var(--bg4);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--dorado);display:flex;justify-content:space-between"><span>Grupo ${letra}</span>${badge}</div>
-        <div style="padding:5px 10px;border-bottom:1px solid var(--border);font-size:11px">
-          <span style="color:var(--dorado)">🥇</span> ${n1}
-          ${realC1&&realC1!==n1?`<span style="color:var(--text3);font-size:10px"> → Real: ${realC1}</span>`:''}
+        <div style="padding:5px 10px;border-bottom:1px solid var(--border);font-size:11px;display:flex;align-items:center;flex-wrap:wrap;gap:2px">
+          <span style="color:var(--dorado)">🥇</span>&nbsp;<span>${n1}</span>${pts1Label}
         </div>
-        <div style="padding:5px 10px;font-size:11px">
-          <span style="color:#C0C0C0">🥈</span> ${n2}
-          ${realC2&&realC2!==n2?`<span style="color:var(--text3);font-size:10px"> → Real: ${realC2}</span>`:''}
+        <div style="padding:5px 10px;font-size:11px;display:flex;align-items:center;flex-wrap:wrap;gap:2px">
+          <span style="color:#C0C0C0">🥈</span>&nbsp;<span>${n2}</span>${pts2Label}
         </div>
       </div>`;
     }).join('')}
@@ -696,7 +697,17 @@ function buildBracket(nombre){
   return `<div style="overflow-x:auto;padding:8px 0">
   ${ter8.length>0?`<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">📜 3ros que pasan (pronosticados):</div><div style="display:flex;flex-wrap:wrap;gap:4px">${ter8.map(t=>`<span style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--text2)">${t}</span>`).join('')}</div></div>`:''}
   <div style="display:flex;gap:0;min-width:900px;align-items:flex-start">
-    ${br('16vos de Final',`<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">${todosClasificados.slice(0,24).map(t=>{const isReal=realOct.includes(t);return `<div style="padding:4px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;font-size:10px;${isReal?'color:var(--verde)':'color:var(--text2)'}">${isReal?'✓ ':''}${t||'?'}</div>`;}).join('')}</div>`,'200px')}
+    ${(()=>{
+      // 16vos de Final: mostrar clasificados agrupados 1ro/2do por grupo como los que pasan
+      const oct16Html = todosClasificados.length > 0
+        ? `<div>${todosClasificados.map((t,i)=>{
+            const isReal=realOct.includes(t);
+            const label = i<24 ? (i%2===0?'🥇':'🥈')+' G'+(String.fromCharCode(65+Math.floor(i/2)))+':' : '3°:';
+            return `<div style="padding:3px 6px;display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border)"><span style="font-size:9px;color:var(--text3);width:32px">${label}</span><span style="font-size:10px;${isReal?'color:var(--verde)':'color:var(--text2)'}">${isReal?'✓ ':''}${t||'?'}</span></div>`;
+          }).join('')}</div>`
+        : '<div style="color:var(--text3);font-size:11px;padding:4px">Cargando...</div>';
+      return br('16vos de Final', oct16Html, '130px');
+    })()}
     ${br('Octavos (8)',octPairs.map(([a,b],i)=>bm(a,b,realOct)).join(''),'135px')}
     ${br('Cuartos (4)',ctoPairs.length>0?ctoPairs.map(([a,b])=>bm(a,b,realCto)).join(''):'<div style="color:var(--text3);font-size:11px;padding:4px">-</div>','125px')}
     ${br('Semis (2)',`${bm(semiPairs[0][0],semiPairs[0][1],realSemi)}<div style="height:14px"></div>${bm(semiPairs[1][0],semiPairs[1][1],realSemi)}`,'125px')}
@@ -986,31 +997,159 @@ function smartAnswer(msg){
   return `Olá quinieleiro! Líder: <strong>${leader.nombre}</strong> (${leader.tot} pts). Promedio: ${avg} pts. ${players.length} quinieleiros. ¡Pregúntame lo que quieras! Agrega API key para respuestas con IA. 😊`;
 }
 
+// ── helpers de crónica ──────────────────────────────────
+function comentCard(date, tagClass, tag, headline, body){
+  return `<div class="comment-card">
+    <div class="comment-meta">
+      <div class="comment-avatar">🧒</div>
+      <div><div class="comment-byline">Claudinho ⚽</div><div class="comment-date">${date}</div></div>
+    </div>
+    <div style="margin-bottom:6px"><span class="comment-tag ${tagClass}">${tag}</span></div>
+    <div class="comment-headline">${headline}</div>
+    <div class="comment-body">${body}</div>
+  </div>`;
+}
+
+function saveComment(dateKey, cards){
+  // Guardar comentario del día en localStorage
+  const store = JSON.parse(localStorage.getItem('cronica_v2')||'{}');
+  store[dateKey] = cards;
+  // Limpiar entradas >4 días
+  const keys = Object.keys(store).sort();
+  while(keys.length > 4){ delete store[keys.shift()]; }
+  localStorage.setItem('cronica_v2', JSON.stringify(store));
+}
+
+function loadHistoryComments(todayKey){
+  const store = JSON.parse(localStorage.getItem('cronica_v2')||'{}');
+  const keys = Object.keys(store).sort().reverse(); // más reciente primero
+  const old = keys.filter(k => k !== todayKey).slice(0,3); // hasta 3 días anteriores
+  if(!old.length) return '';
+  let out = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">📅 Días anteriores</div>`;
+  for(const k of old){
+    const cards = store[k];
+    if(Array.isArray(cards)){
+      out += cards.map(c => comentCard(c.date, c.tagClass, c.tag, c.headline, c.body)).join('');
+    }
+  }
+  out += '</div>';
+  return out;
+}
+
 async function genComment(){
   if(!players.length) return;
   const s=[...players].sort((a,b)=>b.tot-a.tot);
   const leader=s[0],second=s[1],third=s[2],last=s[s.length-1];
   const avg=Math.round(players.reduce((x,p)=>x+p.tot,0)/players.length);
   const topEx=[...players].sort((a,b)=>b.exactos-a.exactos)[0];
+  const topGpos=[...players].sort((a,b)=>b.gpos-a.gpos)[0];
   const today=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('comment-date-0').textContent=today;
+  const dateKey=new Date().toISOString().slice(0,10); // YYYY-MM-DD
   const zeroGpos=players.filter(p=>p.gpos===0);
-  document.getElementById('comment-hl-0').textContent='📰 '+leader.nombre.split(' ')[0]+' lidera con '+leader.tot+' pts';
-  document.getElementById('comment-b-0').innerHTML='<strong>'+leader.nombre+'</strong> lidera con <strong>'+leader.tot+' pts</strong>, '+( leader.tot-second.tot)+' sobre '+second.nombre.split(' ')[0]+' ('+second.tot+') y '+third.nombre.split(' ')[0]+' ('+third.tot+') en podio. Promedio: '+avg+' pts.';
+
+  // Datos de movers (comparar con snapshot previo si existe)
+  const prevSnap = JSON.parse(localStorage.getItem('rank_snapshot')||'{}');
+  const bigMover = players.reduce((best,p)=>{
+    const prev = prevSnap[p.nombre];
+    if(!prev) return best;
+    const diff = prev.rank - p.rank; // positivo = subió
+    return diff > (best.diff||0) ? {nombre:p.nombre,diff,newRank:p.rank,oldRank:prev.rank} : best;
+  }, {diff:0});
+  const bigDrop = players.reduce((worst,p)=>{
+    const prev = prevSnap[p.nombre];
+    if(!prev) return worst;
+    const diff = p.rank - prev.rank; // positivo = bajó
+    return diff > (worst.diff||0) ? {nombre:p.nombre,diff,newRank:p.rank,oldRank:prev.rank} : worst;
+  }, {diff:0});
+  // Guardar snapshot actual
+  const snap = {}; players.forEach(p=>{ snap[p.nombre]={rank:p.rank,tot:p.tot}; });
+  localStorage.setItem('rank_snapshot', JSON.stringify(snap));
+
+  document.getElementById('comment-date-0').textContent=today;
+
+  // Tema 1: Top standings
+  const hl1 = '📰 '+leader.nombre.split(' ')[0]+' lidera con '+leader.tot+' pts';
+  const body1 = '<strong>'+leader.nombre+'</strong> comanda con <strong>'+leader.tot+' pts</strong> — '+( leader.tot-second.tot)+' sobre '+second.nombre.split(' ')[0]+' ('+second.tot+') y '+third.nombre.split(' ')[0]+' ('+third.tot+') cerrando el podio. Promedio del grupo: '+avg+' pts. ¡Olha só!';
+
+  // Tema 2: Movers
+  const hasMover = bigMover.diff > 0 || bigDrop.diff > 0;
+  const hl2 = hasMover
+    ? (bigMover.diff>0?'📈 '+bigMover.nombre.split(' ')[0]+' subió '+bigMover.diff+' lugares':'📊 Sin grandes movimientos')
+    : '🎯 '+topEx.nombre.split(' ')[0]+' lidera en exactos';
+  const body2 = hasMover
+    ? ((bigMover.diff>0?'<strong>'+bigMover.nombre.split(' ')[0]+'</strong> subió <strong>'+bigMover.diff+' posiciones</strong> (del #'+bigMover.oldRank+' al #'+bigMover.newRank+'). ':'')+
+      (bigDrop.diff>0?'<strong>'+bigDrop.nombre.split(' ')[0]+'</strong> bajó '+bigDrop.diff+' puestos (del #'+bigDrop.oldRank+' al #'+bigDrop.newRank+'). Eita, así es esto minha gente!':''))
+    : '<strong>'+topEx.nombre.split(' ')[0]+'</strong> es el quinieleiro más afinado con <strong>'+topEx.exactos+' marcadores exactos</strong>. '+(zeroGpos.length>0?zeroGpos.length+' aún sin pts de grupos — ¡caramba!':'¡Todos ya suman en grupos!');
+
+  // Tema 3: Curiosidad
+  const zeroEx=players.filter(p=>p.exactos===0);
+  const curiosFacts=[
+    players.filter(p=>p.exactos>0).length+' de '+players.length+' quinieleiros acertaron al menos un marcador exacto. El rey: '+topEx.nombre.split(' ')[0]+' con '+topEx.exactos+'. ¡Nossa!',
+    topGpos.nombre.split(' ')[0]+' lleva '+topGpos.gpos+' pts de lugares de grupo — el mejor clasificando equipos. '+(zeroGpos.length>0?zeroGpos.length+' quinieleiros sin pts de grupos todavía.':'¡Todos clasificaron bien!'),
+    zeroEx.length>0?'<strong>'+zeroEx.length+' quinieleiros</strong> todavía sin ningún marcador exacto. Entre ellos: '+zeroEx.slice(0,2).map(p=>p.nombre.split(' ')[0]).join(' y ')+'. ¡Eita, así está el fuego!':'¡Olha só! Ya todos acertaron al menos un marcador exacto. ¡Que nivel!',
+    'El último es <strong>'+last.nombre.split(' ')[0]+'</strong> con '+last.tot+' pts, a '+(leader.tot-last.tot)+' del líder. En eliminatorias todo puede cambiar minha gente — ¡caramba!',
+  ];
+  const hl3='🧩 Curiosidad del día';
+  const body3=curiosFacts[Math.floor((new Date().getDate())%curiosFacts.length)];
+
+  document.getElementById('comment-hl-0').textContent=hl1;
+  document.getElementById('comment-b-0').innerHTML=body1;
+
   const extra=document.getElementById('comment-extra');
-  extra.innerHTML='<div class="comment-card"><div class="comment-meta"><div class="comment-avatar">🧒</div><div><div class="comment-byline">Claudinho ⚽</div><div class="comment-date">'+today+'</div></div></div><div style="margin-bottom:6px"><span class="comment-tag tag-mov">📈 Exactos & Grupos</span></div><div class="comment-body">🎯 <strong>'+topEx.nombre.split(' ')[0]+'</strong> es el más preciso con '+topEx.exactos+' marcadores exactos. '+(zeroGpos.length>0?zeroGpos.length+' quinieleiros aún sin pts de grupos.':'¡Todos ya tienen pts de grupos!')+'</div></div><div class="comment-card"><div class="comment-meta"><div class="comment-avatar">🧒</div><div><div class="comment-byline">Claudinho ⚽</div><div class="comment-date">'+today+'</div></div></div><div style="margin-bottom:6px"><span class="comment-tag tag-cur">🔴 El Fondo</span></div><div class="comment-body">🔴 <strong>'+last.nombre.split(' ')[0]+'</strong> aguanta en último con '+last.tot+' pts, a '+(leader.tot-last.tot)+' del líder. ¡Eita, hay trabajo por hacer minha gente!</div></div>';
+  extra.innerHTML=
+    comentCard(today,'tag-mov','📈 Movimientos',hl2,body2)+
+    comentCard(today,'tag-cur','🧩 Curiosidad',hl3,body3);
+
+  // Cargar historial de días anteriores
+  const histEl=document.getElementById('comment-history');
+  histEl.innerHTML=loadHistoryComments(dateKey);
+
+  // Intentar con IA si hay API key
   if(apiKey){
     try{
-      const sys='Eres Claudinho, niño quinieleiro brasileño 10 años. Escribe 3 comentarios ~50 palabras c/u. Temas: 1) top3 y ventajas 2) quien sube/baja 3) curiosidad. Mezcla español+portugues. NO dinero. JSON: [{"tag":"...","headline":"...","body":"..."},...]';
-      const txt=await callClaude(sys,'Hoy: '+today+'\n'+getContext()+'\nJSON only.',800);
-      const parsed=JSON.parse(txt.replace(/```json|```/g,'').trim());
+      const sys='Eres Claudinho, niño brasileño 10 años, apasionado del fútbol. Escribe EXACTAMENTE 3 comentarios ~50 palabras c/u sobre la quiniela. Temas OBLIGATORIOS: 1) top 3 del ranking y sus puntos/ventajas, 2) quién subió más posiciones y quién bajó más, 3) curiosidad sobre marcadores exactos/grupos/equipos eliminados/resultados sorpresa. Mezcla español con portugués (minha gente,caramba,olha só,nossa,eita). Llama a los participantes "quinieleiros". NUNCA menciones dinero ni premios. Responde SOLO JSON válido sin backticks: [{"tag":"La Tabla","headline":"...","body":"..."},{"tag":"Movimientos","headline":"...","body":"..."},{"tag":"Curiosidad","headline":"...","body":"..."}]';
+      const userMsg='Fecha: '+today+'\n'+getContext()+'\nResponde SOLO JSON.';
+      const txt=await callClaude(sys,userMsg,900);
+      const clean=txt.replace(/```json|```/g,'').trim();
+      const parsed=JSON.parse(clean);
       if(Array.isArray(parsed)&&parsed.length>=3){
-        const tc={'La Tabla':'tag-top','Movimientos':'tag-mov','Curiosidad':'tag-cur'};
+        const tagMap={'La Tabla':'tag-top','Movimientos':'tag-mov','Curiosidad':'tag-cur'};
+        // Actualizar today cards en pantalla
         document.getElementById('comment-hl-0').textContent='📰 '+parsed[0].headline;
         document.getElementById('comment-b-0').innerHTML=parsed[0].body;
-        extra.innerHTML=parsed.slice(1).map(c=>'<div class="comment-card"><div class="comment-meta"><div class="comment-avatar">🧒</div><div><div class="comment-byline">Claudinho ⚽</div><div class="comment-date">'+today+'</div></div></div><div style="margin-bottom:6px"><span class="comment-tag '+(tc[c.tag]||'tag-cur')+'">'+c.tag+'</span></div><div class="comment-headline">'+c.headline+'</div><div class="comment-body">'+c.body+'</div></div>').join('');
+        extra.innerHTML=parsed.slice(1).map(c=>
+          comentCard(today, tagMap[c.tag]||'tag-cur', c.tag, c.headline, c.body)
+        ).join('');
+        // Guardar en localStorage
+        const todayCards=[
+          {date:today,tagClass:'tag-top',tag:'La Tabla',headline:parsed[0].headline,body:parsed[0].body},
+          {date:today,tagClass:tagMap[parsed[1].tag]||'tag-cur',tag:parsed[1].tag,headline:parsed[1].headline,body:parsed[1].body},
+          {date:today,tagClass:tagMap[parsed[2].tag]||'tag-cur',tag:parsed[2].tag,headline:parsed[2].headline,body:parsed[2].body},
+        ];
+        saveComment(dateKey, todayCards);
+        histEl.innerHTML=loadHistoryComments(dateKey);
       }
-    }catch(e){console.warn('Crónica IA falló:',e.message);}
+    }catch(e){
+      console.warn('Crónica IA falló:',e.message);
+      // Guardar versión automática de igual modo
+      const todayCards=[
+        {date:today,tagClass:'tag-top',tag:'La Tabla',headline:hl1,body:body1},
+        {date:today,tagClass:'tag-mov',tag:'Movimientos',headline:hl2,body:body2},
+        {date:today,tagClass:'tag-cur',tag:'Curiosidad',headline:hl3,body:body3},
+      ];
+      saveComment(dateKey, todayCards);
+      histEl.innerHTML=loadHistoryComments(dateKey);
+    }
+  } else {
+    // Sin API key: guardar versión automática
+    const todayCards=[
+      {date:today,tagClass:'tag-top',tag:'La Tabla',headline:hl1,body:body1},
+      {date:today,tagClass:'tag-mov',tag:'Movimientos',headline:hl2,body:body2},
+      {date:today,tagClass:'tag-cur',tag:'Curiosidad',headline:hl3,body:body3},
+    ];
+    saveComment(dateKey, todayCards);
+    histEl.innerHTML=loadHistoryComments(dateKey);
   }
 }
 
