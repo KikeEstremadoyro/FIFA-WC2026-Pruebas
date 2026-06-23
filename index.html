@@ -824,22 +824,43 @@ function buildProfetas(){
   // Encontrar el header row para saber col de campeón
   const hdrProfeta=quinielaRows.find(r=>r[4]&&r[4].trim()==='Nombre');
   // Buscar columna del campeón en el header (última columna con nombre de equipo esperado)
+  // Encontrar índice de col del nombre (col4 en Quinielas, col4 en TablaControl)
+  // y col del campeón (última col string no-numérica antes del 0 final)
+  const SKIP_WORDS=new Set(['Nombre','R1','R2','R3','R4','Marc','Gpos','Tot','Dif','Semi','8vos','4tos','1ro','2do','3ro','Lg','Pag','Quin','PagFIFA']);
   for(const r of quinielaRows){
     const nombre=r[4]?.trim();
-    if(!nombre||nombre==='Nombre'||nombre.startsWith('#')) continue;
-    // Verificar que es una fila de datos (tiene número en r[3] o tiene pts en col 5+)
-    const hasPts = r.slice(5,10).some(v=>v&&/^\d+$/.test(v.trim())&&parseInt(v)>0);
-    if(!hasPts) continue;
-    // Encontrar campeón: buscar desde el final el primer string válido (nombre de país)
+    // Filtrar: header rows, vacíos, marcadores de sección
+    if(!nombre||nombre==='Nombre'||nombre.startsWith('#')||SKIP_WORDS.has(nombre)) continue;
+    // Verificar que tiene puntos numéricos en cols 5-9 (R1,R2,R3,Marc,Gpos)
+    // Al menos uno de R1,R2,R3 debe ser número positivo
+    const r1=parseInt(r[5]),r2=parseInt(r[6]),r3=parseInt(r[7]);
+    if(isNaN(r1)&&isNaN(r2)&&isNaN(r3)) continue;
+    if(r1===0&&r2===0&&r3===0&&parseInt(r[14])===0) continue; // fila vacía
+    // Buscar campeón desde el final: primer string largo no-numérico
     let ci=r.length-1;
-    while(ci>0&&(!r[ci]||r[ci].trim()==='0'||r[ci].trim()===''||/^\d+$/.test(r[ci].trim())))ci--;
+    let safety=0;
+    while(ci>10&&safety<200){
+      safety++;
+      const v=r[ci]?.trim()||'';
+      if(v&&v!=='0'&&v.length>2&&!/^\d+$/.test(v)&&!SKIP_WORDS.has(v)) break;
+      ci--;
+    }
     const ch=r[ci]?.trim();
-    if(ch&&ch!=='0'&&ch.length>2&&!/^\d/.test(ch)&&ch!=='Nombre'){
+    if(ch&&ch!=='0'&&ch.length>2&&!/^\d/.test(ch)&&!SKIP_WORDS.has(ch)){
       champCount[ch]=(champCount[ch]||0)+1;total++;
     }
-    const th=r[ci-1]?.trim();
-    if(th&&th!=='0'&&th.length>2&&!/^\d/.test(th)&&th!=='Nombre') thirdCount[th]=(thirdCount[th]||0)+1;
-    for(let s=5;s>=2;s--){const t=r[ci-s]?.trim();if(t&&t!=='0'&&t.length>2&&!/^\d/.test(t)&&t!=='Nombre')semi[t]=(semi[t]||0)+1;}
+    // 3er lugar: una posición antes del campeón
+    let ci2=ci-1;
+    while(ci2>10){const v=r[ci2]?.trim()||'';if(v&&v.length>2&&!/^\d+$/.test(v)&&!SKIP_WORDS.has(v))break;ci2--;}
+    const th=r[ci2]?.trim();
+    if(th&&th!=='0'&&th.length>2&&!/^\d/.test(th)&&!SKIP_WORDS.has(th)) thirdCount[th]=(thirdCount[th]||0)+1;
+    // Semis: 4 posiciones antes del campeón aprox
+    for(let s=2;s<=6;s++){
+      let cis=ci-s;
+      while(cis>10){const v=r[cis]?.trim()||'';if(v&&v.length>2&&!/^\d+$/.test(v)&&!SKIP_WORDS.has(v))break;cis--;}
+      const t=r[cis]?.trim();
+      if(t&&t!=='0'&&t.length>2&&!/^\d/.test(t)&&!SKIP_WORDS.has(t))semi[t]=(semi[t]||0)+1;
+    }
   }
   if(!total){document.getElementById('profetas-cont').innerHTML='<div class="empty"><p>Sin datos eliminatorios.</p></div>';return;}
   const cs=Object.entries(champCount).sort((a,b)=>b[1]-a[1]).slice(0,12);
@@ -968,11 +989,26 @@ function buildNominados(){
   });
   const famSorted=Object.entries(fams).filter(([,v])=>v.length>1).sort((a,b)=>b[1].length-a[1].length).slice(0,3);
 
-  const medals=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣'];
-  const nom7=(arr,key,suf,extra=null)=>arr.slice(0,7).map((p,i)=>`<div class="nom-item"><span>${medals[i]||('#'+(i+1))} ${p.nombre.split(' ').slice(0,2).join(' ')}</span><span class="nom-val">${extra?extra(p):p[key]}${suf}</span></div>`).join('');
-  const bot7=(arr,key,suf,extra=null)=>arr.slice(0,7).map((p,i)=>`<div class="nom-item"><span>${['🔻','🔻','🔻','🔻','🔻','🔻','🔻'][i]} ${p.nombre.split(' ').slice(0,2).join(' ')}</span><span class="nom-val" style="color:var(--rojo)">${extra?extra(p):p[key]}${suf}</span></div>`).join('');
-  // compat aliases
-  const nom3=nom7, bot3=bot7;
+  const medals=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'];
+  // Mostrar top 6 + todos los que empaten en el 6to lugar
+  const nomN=(arr,key,suf,n=6)=>{
+    if(!arr.length) return '';
+    const items=arr.slice(0,n);
+    // Agregar empates del último lugar mostrado
+    const lastVal=items[items.length-1]?.[key];
+    const extra6=arr.slice(n).filter(p=>p[key]===lastVal);
+    const all=[...items,...extra6];
+    return all.map((p,i)=>`<div class="nom-item"><span>${medals[i]||('#'+(i+1))} ${p.nombre.split(' ').slice(0,2).join(' ')}</span><span class="nom-val">${p[key]}${suf}</span></div>`).join('');
+  };
+  const botN=(arr,key,suf,n=6)=>{
+    if(!arr.length) return '';
+    const items=arr.slice(0,n);
+    const lastVal=items[items.length-1]?.[key];
+    const extra6=arr.slice(n).filter(p=>p[key]===lastVal);
+    const all=[...items,...extra6];
+    return all.map((p,i)=>`<div class="nom-item"><span>🔻 ${p.nombre.split(' ').slice(0,2).join(' ')}</span><span class="nom-val" style="color:var(--rojo)">${p[key]}${suf}</span></div>`).join('');
+  };
+  const nom3=nomN, bot3=botN, nom7=nomN, bot7=botN;
 
   const noms=[
     {icon:'🎯',cat:'Precisión',title:'Más marcadores exactos',body:nom3(byExactos,'exactosR',' exactos')},
@@ -1056,7 +1092,7 @@ function buildGrupos(){
     });
   }
 
-  document.getElementById('grupos-cont').innerHTML=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+  document.getElementById('grupos-cont').innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;max-width:100%">
   ${grupos.map(letra=>{
     const d=counts[letra]||{f:{},s:{},t:{}};
     const fs=Object.entries(d.f||{}).sort((a,b)=>b[1]-a[1]).slice(0,4);
@@ -1129,13 +1165,38 @@ function buildFacts(){
     {icon:'👨‍👩‍👧‍👦',text:topFam?`La familia <strong>"${topFam[0]}"</strong> domina con <strong>${topFam[1]} quinielas</strong> activas. ¡A ver quién de la familia termina arriba! ${reyesCount>3?'La dinastía Reyes/Retana tiene '+reyesCount+' quinielas en total.':''}`:'Varias familias participando — la quiniela es un deporte familiar.'},
     {icon:'📊',text:`El top 10 está separado por solo <strong>${rangoTop10} pts</strong>. Hay <strong>${within3}</strong> quinieleiros a 3 pts o menos del promedio (${avg}). ¡El grupo está muy parejo!`},
     {icon:'🔴',text:`<strong>${last.nombre.split(' ')[0]}</strong> aguanta en el fondo con <strong>${last.tot} pts</strong>, a ${leader.tot-last.tot} del líder. Pero quedan muchos partidos — ¡nada está escrito!`},
-    {icon:'✅',text:`El campeón de resultados correctos es <strong>${topRes.nombre.split(' ')[0]}</strong> con <strong>${topRes.resultados} aciertos</strong>. <strong>${minRes.nombre.split(' ')[0]}</strong> tiene el menor número: ${minRes.resultados}.`},
-    {icon:'🌟',text:`<strong>${topFG.nombre.split(' ')[0]}</strong> lidera la fase de grupos con <strong>${topFG.fg} pts totales</strong> — la suma de marcadores, resultados y puntos de clasificación.`},
-    {icon:'📈',text:`La mejor ronda 1 fue de <strong>${topR1.nombre.split(' ')[0]}</strong> (${topR1.r1} pts). La mejor ronda 2: <strong>${topR2.nombre.split(' ')[0]}</strong> (${topR2.r2} pts). ${topR3.r3>0?'Ronda 3: <strong>'+topR3.nombre.split(' ')[0]+'</strong> ('+topR3.r3+' pts).':''}`},
-    {icon:'🤝',text:empatados>1?`Son <strong>${empatados} quinieleiros</strong> empatados en el primer lugar con ${leader.tot} pts. ¡La cima está llena de competencia!`:`<strong>${leader.nombre.split(' ')[0]}</strong> está solo en la cima. El 2do (${second.nombre.split(' ')[0]}) tiene ${second.tot} pts — a ${gap} de distancia.`},
+    {icon:'✅',text:(()=>{
+      const topResVal=topRes.resultados||0;
+      const minResVal=minRes.resultados||0;
+      const conTopRes=byRes.filter(p=>(p.resultados||0)===topResVal);
+      const conMinRes=[...byRes].reverse().filter(p=>(p.resultados||0)===minResVal);
+      const nameTop=conTopRes.length>1?conTopRes.map(p=>p.nombre.split(' ').slice(0,2).join(' ')).join(', '):topRes.nombre.split(' ').slice(0,2).join(' ');
+      const nameMin=conMinRes.length>1?conMinRes.length+' quinieleiros':minRes.nombre.split(' ').slice(0,2).join(' ');
+      return `El líder de resultados correctos: <strong>${nameTop}</strong> con <strong>${topResVal}</strong>. ${conTopRes.length>1?'(todos empatados)':''} El que menos tiene: <strong>${nameMin}</strong> con ${minResVal}.`;
+    })()},
+    {icon:'🌟',text:(()=>{const topGposVal=topGpos.gpos;const conTopGpos=players.filter(p=>p.gpos===topGposVal);return `<strong>${conTopGpos.length>1?conTopGpos.length+' quinieleiros tienen':topGpos.nombre.split(' ')[0]+' tiene'}</strong> <strong>${topGposVal} pts de clasificación</strong> — el máximo en lugares de grupo (1ro=4, 2do=3, 3ro=2 pts).`;})()},
+    {icon:'📈',text:(()=>{
+      const r1val=topR1.r1,r2val=topR2.r2,r3val=topR3.r3;
+      const empR1=players.filter(p=>p.r1===r1val).length;
+      const empR2=players.filter(p=>p.r2===r2val).length;
+      const empR3=players.filter(p=>p.r3===r3val).length;
+      const n1=empR1>1?empR1+' quinieleiros empatados':topR1.nombre.split(' ').slice(0,2).join(' ');
+      const n2=empR2>1?empR2+' quinieleiros empatados':topR2.nombre.split(' ').slice(0,2).join(' ');
+      return `R1: <strong>${n1}</strong> (${r1val} pts). R2: <strong>${n2}</strong> (${r2val} pts).${r3val>0?' R3: <strong>'+(empR3>1?empR3+' empatados':topR3.nombre.split(' ').slice(0,2).join(' '))+'</strong> ('+r3val+' pts).':''}`;
+    })()},
+    {icon:'🤝',text:(()=>{
+      const topGposLdr=players.filter(p=>p.gpos===topGpos.gpos);
+      return empatados>1
+        ?`Son <strong>${empatados} quinieleiros</strong> empatados en el primer lugar con ${leader.tot} pts: ${players.filter(p=>p.rank===1).map(p=>p.nombre.split(' ').slice(0,2).join(' ')).join(', ')}.`
+        :`El mejor en clasificados de grupo: <strong>${topGposLdr.length>1?topGposLdr.length+' quinieleiros con '+topGpos.gpos+' pts':topGpos.nombre.split(' ').slice(0,2).join(' ')+' con '+topGpos.gpos+' pts'}</strong>. El liderazgo en grupos puede cambiar todo en eliminatorias.`;
+    })()},
     {icon:'💡',text:`<strong>${belowAvg}</strong> de ${players.length} quinieleiros están debajo del promedio (${avg} pts), y <strong>${players.length-belowAvg}</strong> están arriba. ¿En qué lado estás tú?`},
-    {icon:'🎲',text:`El partido más difícil de adivinar fue el que menos exactos tuvo. De los ${players.length} quinieleiros, solo <strong>${enrichedF.filter(p=>p.exactosR>0).length}</strong> acertaron al menos un marcador exacto.`},
-    {icon:'📉',text:`El rango total va de <strong>${last.tot} a ${leader.tot} pts</strong> — una diferencia de ${leader.tot-last.tot} puntos. En eliminatorias un buen torneo puede subir hasta 50 posiciones.`},
+    {icon:'🎲',text:(()=>{
+      const conExactos=enrichedF.filter(p=>p.exactosR>0);
+      const promExactos=conExactos.length>0?Math.round(conExactos.reduce((s,p)=>s+p.exactosR,0)/conExactos.length*10)/10:0;
+      return `El promedio de marcadores exactos entre quienes acertaron al menos uno: <strong>${promExactos} exactos</strong>. <strong>${conExactos.length}</strong> de ${players.length} quinieleiros acertaron algún marcador exacto.`;
+    })()},
+    {icon:'📉',text:`El rango de puntos va de <strong>${last.tot}</strong> (último) a <strong>${leader.tot}</strong> (líder) — <strong>${leader.tot-last.tot} pts de diferencia</strong>. El promedio es ${avg} pts. En eliminatorias, acertar al campeón puede valer 12+ pts de golpe.`},
     {icon:'🔢',text:`Si la quiniela terminara hoy, el líder tendría ${leader.tot-avg} pts sobre el promedio. Pero quedan partidos de 8vos, 4tos, semis y final — cada uno vale hasta 4 pts.`},
     {icon:'⚡',text:zeroExactos.length>0?`<strong>${zeroExactos.length} quinieleiros</strong> aún no tienen ningún marcador exacto. Adivinar el marcador exacto es lo más difícil de la quiniela — ¡vale 4 pts pero hay que ser muy afinado!`:`¡Todos han acertado al menos un marcador exacto! El líder en exactos: <strong>${topEx.nombre.split(' ')[0]}</strong> con ${topEx.exactosR}.`},
     {icon:'🏆',text:`En eliminatorias se juegan 16+8+4+2+1 = 31 partidos más. Cada exacto vale 4 pts. Quien lea mejor los partidos ahí puede cambiar completamente la tabla.`},
@@ -1166,34 +1227,46 @@ TODOS: ${players.map(p=>`${p.nombre}:${p.tot}:#${p.rank}`).join(',')}`;
 
 // Respuestas predeterminadas sin API
 function smartAnswer(msg){
-  if(!players.length) return 'Olá! Todavía estoy cargando los datos. ¡Intenta en un momento!';
+  if(!players.length) return 'Olá! Todavía estoy cargando los datos. ¡Intenta en un momento minha gente!';
   const s=[...players].sort((a,b)=>b.tot-a.tot);
   const avg=Math.round(players.reduce((x,p)=>x+p.tot,0)/players.length);
-  const leader=s[0],second=s[1],last=s[s.length-1];
-  const topEx=[...players].sort((a,b)=>b.exactos-a.exactos)[0];
+  const leader=s[0],second=s[1],third=s[2],last=s[s.length-1];
+  const allSt=calcAllStats();
+  const enrichedS=players.map(p=>({...p,exactosR:(allSt[p.nombre]?.exactos||0),resultadosR:(allSt[p.nombre]?.resultados||0)}));
+  const topEx=[...enrichedS].sort((a,b)=>b.exactosR-a.exactosR)[0];
+  const topGpos=[...players].sort((a,b)=>b.gpos-a.gpos)[0];
+  const zeroGpos=players.filter(p=>p.gpos===0);
   const q=msg.toLowerCase();
-
-  if(q.includes('primer')||q.includes('primero')||q.includes('líder')||q.includes('lider'))
-    return `Minha gente! 🥇 <strong>${leader.nombre}</strong> va en primer lugar con <strong>${leader.tot} pts</strong>, con ${leader.tot-second.tot} pts de ventaja sobre ${second.nombre.split(' ')[0]} (${second.tot} pts). ¡Caramba que pelea!`;
-  if(q.includes('último')||q.includes('ultimo')||q.includes('abajo')||q.includes('final'))
-    return `Olha só 🔴 En el último lugar va <strong>${last.nombre}</strong> con <strong>${last.tot} pts</strong> — a ${leader.tot-last.tot} pts del líder. ¡Nossa, hay que remontar!`;
-  if(q.includes('exacto')||q.includes('marcador'))
-    return `🎯 El más afinado es <strong>${topEx.nombre}</strong> con <strong>${topEx.exactosR||topEx.exactos} marcadores exactos</strong>. Eita, ¡que precisión!`;
-  if(q.includes('promedio')||q.includes('media'))
-    return `📊 El promedio de la quiniela es <strong>${avg} pts</strong>. ${players.filter(p=>p.tot>avg).length} quinieleiros están arriba y ${players.filter(p=>p.tot<avg).length} abajo del promedio.`;
-  if(q.includes('mexico')||q.includes('méxico'))
-    return `🇲🇽 ¡Arriba México! Varios quinieleiros pronosticaron a México campeón. Checa la sección Profetas para ver la distribución completa de pronósticos de campeón.`;
+  // Buscar nombre específico primero
+  const nom=players.find(p=>q.includes(p.nombre.toLowerCase())||q.split(' ').some(w=>w.length>3&&p.nombre.toLowerCase().includes(w)));
+  if(nom){
+    const st=allSt[nom.nombre]||{};
+    const ex=st.exactos||0,res=st.resultados||0;
+    return `📋 <strong>${nom.nombre}</strong> va <strong>#${nom.rank}</strong> de ${players.length} con <strong>${nom.tot} pts</strong>.<br>🎯 ${ex} marcadores exactos (${ex*4} pts) · ✅ ${res} resultados · 🏅 ${nom.gpos} pts de grupos.<br>${nom.dif===0?'¡Es el líder! 🥇':'A '+Math.abs(nom.dif)+' pts del líder ('+leader.nombre.split(' ')[0]+').'}`;
+  }
+  if(q.includes('primer')||q.includes('primero')||q.includes('líder')||q.includes('lider')||q.includes('arriba')){
+    const emp=players.filter(p=>p.rank===1);
+    return emp.length>1
+      ?`🥇 <strong>${emp.length} quinieleiros empatados</strong> en 1er lugar con ${leader.tot} pts:<br>${emp.map(p=>p.nombre.split(' ').slice(0,2).join(' ')).join('<br>')}`
+      :`🥇 <strong>${leader.nombre}</strong> lidera con <strong>${leader.tot} pts</strong> — ${leader.tot-second.tot} pts sobre ${second.nombre.split(' ')[0]} (${second.tot}) y ${third.nombre.split(' ')[0]} (${third.tot}). ¡Caramba, qué pelea minha gente!`;
+  }
+  if(q.includes('último')||q.includes('ultimo')||q.includes('fondo'))
+    return `🔴 En el fondo: <strong>${last.nombre}</strong> con <strong>${last.tot} pts</strong>, a ${leader.tot-last.tot} del líder. ${zeroGpos.length>0?zeroGpos.length+' quinieleiros aún sin pts de grupos.':''} ¡Olha só, en eliminatorias todo puede cambiar!`;
+  if(q.includes('exacto')||q.includes('marcador')||q.includes('precis')){
+    const promEx=Math.round(enrichedS.reduce((s,p)=>s+p.exactosR,0)/enrichedS.length*10)/10;
+    return `🎯 El más afinado: <strong>${topEx.nombre.split(' ').slice(0,2).join(' ')}</strong> con <strong>${topEx.exactosR} exactos</strong>. Promedio del grupo: ${promEx} exactos por quinielero. Solo ${enrichedS.filter(p=>p.exactosR>0).length} de ${players.length} han acertado alguno. ¡Eita, qué difícil!`;
+  }
+  if(q.includes('promedio'))
+    return `📊 Promedio: <strong>${avg} pts</strong>. ${players.filter(p=>p.tot>avg).length} arriba y ${players.filter(p=>p.tot<avg).length} abajo. Rango: ${last.tot}–${leader.tot} pts (diferencia de ${leader.tot-last.tot}).`;
+  if(q.includes('grupo')||q.includes('clasificad'))
+    return `🏅 Líderes en pts de grupos: <strong>${topGpos.nombre.split(' ').slice(0,2).join(' ')}</strong> (${topGpos.gpos} pts). ${zeroGpos.length>0?zeroGpos.length+' quinieleiros sin pts de grupos aún.':'¡Todos tienen pts de grupos!'}`;
+  if(q.includes('podio')||q.includes('top')||q.includes('primeros')||q.includes('mejores'))
+    return `🏆 Podio actual:<br>#1 <strong>${s[0].nombre}</strong> — ${s[0].tot} pts<br>#2 <strong>${s[1].nombre}</strong> — ${s[1].tot} pts<br>#3 <strong>${s[2].nombre}</strong> — ${s[2].tot} pts<br>#4 ${s[3]?.nombre} — ${s[3]?.tot} pts<br>#5 ${s[4]?.nombre} — ${s[4]?.tot} pts`;
   if(q.includes('diferencia')||q.includes('ventaja'))
-    return `📏 La ventaja del líder ${leader.nombre.split(' ')[0]} sobre el 2do (${second.nombre.split(' ')[0]}) es de <strong>${leader.tot-second.tot} pts</strong>. Del 1ro al último hay ${leader.tot-last.tot} pts. ¡Mucho por definir!`;
-  if(q.includes('cuantos')||q.includes('cuántos')||q.includes('total')||q.includes('particip'))
-    return `👥 Son <strong>${players.length} quinieleiros</strong> en total. Promedio: ${avg} pts. El rango va de ${last.tot} a ${leader.tot} pts. ¡Que competencia!`;
-  if(q.includes('top')||q.includes('primeros')||q.includes('podio'))
-    return `🏆 El podio actual:\n#1 ${s[0].nombre} ${s[0].tot}pts\n#2 ${s[1].nombre} ${s[1].tot}pts\n#3 ${s[2].nombre} ${s[2].tot}pts`;
+    return `📏 Líder aventaja ${leader.tot-second.tot} pts al 2do. Del 1ro al último: <strong>${leader.tot-last.tot} pts</strong> de diferencia.`;
   if(q.includes('curioso')||q.includes('dato'))
-    return `🧩 ${topEx.nombre.split(' ')[0]} tiene ${topEx.exactos} exactos mientras que ${[...players].sort((a,b)=>a.exactos-b.exactos)[0].nombre.split(' ')[0]} aún no tiene ninguno. ¡Olha só!`;
-  const nom=players.find(p=>msg.toLowerCase().includes(p.nombre.split(' ')[0].toLowerCase()));
-  if(nom) return `📋 <strong>${nom.nombre}</strong> va #${nom.rank} con <strong>${nom.tot} pts</strong>. ${nom.exactos} exactos (${nom.marc} pts marc), ${nom.resultados} resultados (${nom.r1+nom.r2+nom.r3} pts), ${nom.gpos} pts grupos.`;
-  return `Olá quinieleiro! Líder: <strong>${leader.nombre}</strong> (${leader.tot} pts). Promedio: ${avg} pts. ${players.length} quinieleiros. ¡Pregúntame lo que quieras! Agrega API key para respuestas con IA. 😊`;
+    return `🧩 ${topEx.exactosR} es el máximo de exactos (${topEx.nombre.split(' ')[0]}). Solo ${enrichedS.filter(p=>p.exactosR>0).length} de ${players.length} acertaron alguno. Promedio: ${Math.round(enrichedS.reduce((s,p)=>s+p.exactosR,0)/enrichedS.length*10)/10}. ¡Olha só!`;
+  return `Olá minha gente! 👋<br>🥇 Líder: <strong>${leader.nombre}</strong> (${leader.tot} pts)<br>📊 Promedio: <strong>${avg} pts</strong> · ${players.length} quinieleiros<br>🎯 Más exactos: <strong>${topEx.nombre.split(' ')[0]}</strong> (${topEx.exactosR})<br>🏅 Más pts grupos: <strong>${topGpos.nombre.split(' ')[0]}</strong> (${topGpos.gpos})<br><br>Pregúntame por nombre, podio, exactos, grupos, diferencias... ¡o agrega tu API key para respuestas con IA completa! 🤖`;
 }
 
 // ── helpers de crónica ──────────────────────────────────
@@ -1271,7 +1344,13 @@ async function genComment(){
   const snap = {}; players.forEach(p=>{ snap[p.nombre]={rank:p.rank,tot:p.tot}; });
   localStorage.setItem('rank_snapshot', JSON.stringify(snap));
 
-  document.getElementById('comment-date-0').textContent=today;
+  // Actualizar elementos si existen
+  const elDate=document.getElementById('comment-date-0');
+  const elHl=document.getElementById('comment-hl-0');
+  const elBody=document.getElementById('comment-b-0');
+  const elExtra=document.getElementById('comment-extra');
+  const elHist=document.getElementById('comment-history');
+  if(elDate) elDate.textContent=today;
 
   // Tema 1: Top standings
   const hl1 = '📰 '+leader.nombre.split(' ')[0]+' lidera con '+leader.tot+' pts';
@@ -1303,17 +1382,15 @@ async function genComment(){
   const hl3='🧩 Curiosidad del día';
   const body3=curiosFacts[Math.floor((new Date().getDate())%curiosFacts.length)];
 
-  document.getElementById('comment-hl-0').textContent=hl1;
-  document.getElementById('comment-b-0').innerHTML=body1;
+  if(elHl) elHl.textContent=hl1;
+  if(elBody) elBody.innerHTML=body1;
 
-  const extra=document.getElementById('comment-extra');
-  extra.innerHTML=
+  if(elExtra) elExtra.innerHTML=
     comentCard(today,'tag-mov','📈 Movimientos',hl2,body2)+
     comentCard(today,'tag-cur','🧩 Curiosidad',hl3,body3);
 
   // Cargar historial de días anteriores
-  const histEl=document.getElementById('comment-history');
-  histEl.innerHTML=loadHistoryComments(dateKey);
+  if(elHist) elHist.innerHTML=loadHistoryComments(dateKey);
 
   // Intentar con IA si hay API key
   if(apiKey){
@@ -1326,9 +1403,9 @@ async function genComment(){
       if(Array.isArray(parsed)&&parsed.length>=3){
         const tagMap={'La Tabla':'tag-top','Movimientos':'tag-mov','Curiosidad':'tag-cur'};
         // Actualizar today cards en pantalla
-        document.getElementById('comment-hl-0').textContent='📰 '+parsed[0].headline;
-        document.getElementById('comment-b-0').innerHTML=parsed[0].body;
-        extra.innerHTML=parsed.slice(1).map(c=>
+        if(elHl) elHl.textContent='📰 '+parsed[0].headline;
+        if(elBody) elBody.innerHTML=parsed[0].body;
+        if(elExtra) elExtra.innerHTML=parsed.slice(1).map(c=>
           comentCard(today, tagMap[c.tag]||'tag-cur', c.tag, c.headline, c.body)
         ).join('');
         // Guardar en localStorage
@@ -1338,7 +1415,7 @@ async function genComment(){
           {date:today,tagClass:tagMap[parsed[2].tag]||'tag-cur',tag:parsed[2].tag,headline:parsed[2].headline,body:parsed[2].body},
         ];
         saveComment(dateKey, todayCards);
-        histEl.innerHTML=loadHistoryComments(dateKey);
+        if(elHist) elHist.innerHTML=loadHistoryComments(dateKey);
       }
     }catch(e){
       console.warn('Crónica IA falló:',e.message);
@@ -1349,7 +1426,7 @@ async function genComment(){
         {date:today,tagClass:'tag-cur',tag:'Curiosidad',headline:hl3,body:body3},
       ];
       saveComment(dateKey, todayCards);
-      histEl.innerHTML=loadHistoryComments(dateKey);
+      if(elHist) elHist.innerHTML=loadHistoryComments(dateKey);
     }
   } else {
     // Sin API key: guardar versión automática
@@ -1359,7 +1436,7 @@ async function genComment(){
       {date:today,tagClass:'tag-cur',tag:'Curiosidad',headline:hl3,body:body3},
     ];
     saveComment(dateKey, todayCards);
-    histEl.innerHTML=loadHistoryComments(dateKey);
+    if(elHist) elHist.innerHTML=loadHistoryComments(dateKey);
   }
 }
 
