@@ -390,33 +390,45 @@ async function loadAll() {
     // Buscar la fila que tiene el header exacto de TablaControl:
     // col[3]='Lg', col[4]='Nombre', col[5]='R1', col[6]='R2', col[7]='R3', col[8]='Marc'
     // Esta fila tiene los scores reales en col 17+ (2,0,4 = gol1,gol2,pts para cada partido)
+    // Log todas las primeras 8 filas para diagnóstico
+    console.log('TablaControl primeras filas:');
+    for(let i=0;i<Math.min(8,ctrlRows.length);i++){
+      const r=ctrlRows[i];
+      console.log('fila',i,'| cols 0-10:', r.slice(0,10).join(' | '), '| col17-19:', r[17], r[18], r[19]);
+    }
+    // Buscar fila de resultados reales: tiene Lg,Nombre y scores numéricos en col 17+
+    // Según TablaControl: col3=Lg, col4=Nombre, col5=R1...col16=separador, col17=score1...
     for(let i=0;i<Math.min(10,ctrlRows.length);i++){
       const r=ctrlRows[i];
-      const isRealRow = r[3]?.trim()==='Lg' 
-        && r[4]?.trim()==='Nombre' 
-        && r[5]?.trim()==='R1'
-        && r[6]?.trim()==='R2'
-        && r[7]?.trim()==='R3'
-        && r[8]?.trim()==='Marc';
-      if(isRealRow){
+      // La fila real tiene Lg en col3, Nombre en col4, y números en col 17,18,19
+      const hasLgNombre = r[3]?.trim()==='Lg' && r[4]?.trim()==='Nombre';
+      // Verificar que col 17+ tiene scores (números pequeños 0-9 tipicamente)
+      const col17=parseInt(r[17]); const col18=parseInt(r[18]); const col19=parseInt(r[19]);
+      const hasScores = !isNaN(col17) && !isNaN(col18) && !isNaN(col19);
+      if(hasLgNombre && hasScores){
         realResults = r;
-        console.log('✅ Resultados reales TablaControl fila', i, '| col17-19:', r[17], r[18], r[19]);
+        console.log('✅ Resultados reales encontrados en fila', i, '| col17:', r[17], col18, col19);
         break;
       }
     }
     if(!realResults.length) {
-      // Fallback: buscar cualquier fila con Lg/Nombre + R1
+      // Fallback más amplio: buscar CUALQUIER fila con 'Nombre' en col4 y números en col17+
       for(let i=0;i<Math.min(10,ctrlRows.length);i++){
         const r=ctrlRows[i];
-        if(r[3]?.trim()==='Lg' && r[4]?.trim()==='Nombre' && r[5]?.trim()==='R1'){
-          realResults = r;
-          console.log('✅ Resultados reales (fallback) fila', i);
-          break;
+        if(r[4]?.trim()==='Nombre'){
+          const col17=parseInt(r[17]);
+          if(!isNaN(col17)){
+            realResults = r;
+            console.log('✅ Resultados (fallback Nombre+num) fila', i, '| col17:', r[17], r[18], r[19]);
+            break;
+          }
         }
       }
     }
     if(!realResults.length) {
-      console.warn('⚠️ No se encontró fila de resultados reales en TablaControl');
+      console.warn('⚠️ No se encontró fila de resultados reales. Intentando col R directa (índice 17)...');
+      // Último fallback: usar fila índice 3 de TablaControl (fila 4 en el sheet = header con reales)
+      if(ctrlRows.length > 3) { realResults = ctrlRows[3]; console.log('Fallback fila 3:', ctrlRows[3]?.slice(15,22)); }
     }
   } catch(e) { console.warn('No se cargaron resultados reales:', e.message); }
 
