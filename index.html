@@ -505,21 +505,26 @@ function showPlayer(nombre){
   const tot=players.length;
   const pct=Math.round((1-(p.rank-1)/tot)*100);
   const difLabel=p.dif===0?'¡ES EL LÍDER! 🥇':p.dif<0?`${p.dif} del líder`:`+${p.dif}`;
-  const matchCards=buildMatchCards(nombre);
+  const mq=buildMatchCards(nombre);
   const bracket=buildBracket(nombre);
+  // Usar conteos reales calculados desde partidos individuales
+  const exactosReal = mq.exactosReal || 0;
+  const ptsMarcReal = mq.ptsMarcReal || 0;
+  const resultadosReal = mq.resultadosReal || 0;
+  const ptsResReal = mq.ptsResReal || 0;
   el.innerHTML=`
   <div class="profile-card">
     <div class="profile-name">${p.nombre}</div>
     <div class="profile-rank">${p.rank<=3?['🥇','🥈','🥉'][p.rank-1]+' ':''}Posición #${p.rank} de ${tot} · Top ${pct}%</div>
     <div class="pstats">
       <div class="pstat"><div class="val">${p.tot}</div><div class="lbl">Puntos totales</div></div>
-      <div class="pstat"><div class="val">${p.marc} pts<div class="sub">${p.exactos} exactos</div></div><div class="lbl">Marcadores</div></div>
-      <div class="pstat"><div class="val">${p.r1+p.r2+p.r3} correctos</div><div class="lbl">Resultados</div></div>
+      <div class="pstat"><div class="val">${ptsMarcReal} pts<div class="sub">${exactosReal} exactos</div></div><div class="lbl">Marcadores</div></div>
+      <div class="pstat"><div class="val">${resultadosReal} correctos</div><div class="lbl">Resultados</div></div>
       <div class="pstat"><div class="val" style="color:var(--azul)">${p.gpos} pts lugares</div><div class="lbl">Grupos</div></div>
       <div class="pstat"><div class="val" style="color:${p.dif===0?'var(--dorado)':'var(--text2)'};font-size:14px">${difLabel}</div><div class="lbl">Vs Líder</div></div>
     </div>
   </div>
-  ${matchCards}
+  ${mq.html}
   <div class="card" style="margin-top:16px">
     <div class="card-hdr"><div class="card-title">🏆 Bracket Eliminatorio</div><div style="font-size:11px;color:var(--text3)">Pronósticos de ${p.nombre.split(' ')[0]}</div></div>
     <div style="padding:16px">${bracket}</div>
@@ -539,6 +544,9 @@ function buildMatchCards(nombre){
   let col=17; // columna inicio partidos en Quinielas 2026
   const groups=Object.entries(GRUPOS_INFO);
 
+  // Contadores reales calculados desde partidos individuales
+  let exactosReal=0, resultadosReal=0, ptsMarcReal=0, ptsResReal=0;
+
   groups.forEach(([letra,gInfo])=>{
     html+=`<div class="ggroup"><div class="gg-title">Grupo ${letra}</div><div class="matches-grid">`;
     gInfo.matches.forEach((matchName,mi)=>{
@@ -551,11 +559,20 @@ function buildMatchCards(nombre){
       const s1=s1raw.trim(), s2=s2raw.trim();
       const pending=s1===''||s2===''||ptsRaw.trim()==='';
 
-      // Resultado real desde fila 3 de TablaControl (mismo offset de columnas)
+      // Acumular conteos reales (solo partidos ya jugados con pts asignados)
+      if(!pending){
+        if(pts===4){ exactosReal++; ptsMarcReal+=4; }
+        else if(pts===1){ resultadosReal++; ptsResReal+=1; }
+      }
+
+      // Resultado real desde TablaControl fila 3
+      // TablaControl fila 3 tiene MISMA estructura de columnas que Quinielas2026
+      // pero en TablaControl col 17 corresponde al primer partido del Grupo A
       const rr1=realResults[baseCol]?.trim()||'';
       const rr2=realResults[baseCol+1]?.trim()||'';
-      const hasReal=rr1!==''&&rr2!==''&&rr1!=='0'&&rr2!=='0';
-      const realScore=hasReal?`${rr1}-${rr2}`:'';
+      // Un resultado real válido: ambos números, al menos uno >0, y son dígitos
+      const hasReal=rr1!==''&&rr2!==''&&/^\d+$/.test(rr1)&&/^\d+$/.test(rr2)&&(parseInt(rr1)+parseInt(rr2)>=0)&&!(rr1==='0'&&rr2==='0'&&pts===0&&pending);
+      const realScore=hasReal?`${rr1} - ${rr2}`:'';
 
       let cls,lbl,score;
       if(pending){
@@ -576,7 +593,7 @@ function buildMatchCards(nombre){
           <span class="match-score" style="${pending?'color:var(--text3)':''}">${score}</span>
           <span class="team-name right">${teams[1]}</span>
         </div>
-        ${hasReal?`<div style="text-align:center;font-size:10px;color:var(--text3);margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.06)">Real: <strong style="color:${pts===4?'var(--dorado)':pts>0?'var(--verde)':'var(--rojo)'}">${realScore}</strong>${pts===4?' ⭐':pts>0?' ✓':' ✗'}</div>`:''}
+        ${hasReal&&!pending?`<div style="text-align:center;font-size:10px;color:var(--text3);margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.06)">Real: <strong style="color:${pts===4?'var(--dorado)':pts>0?'var(--verde)':'var(--rojo)'}">${realScore}</strong>${pts===4?' ⭐':pts>0?' ✓':' ✗'}</div>`:''}
         <div class="match-result">
           <span style="color:var(--text3);font-size:10px">P${mi+1}</span>
           <span class="badge ${cls}">${lbl}</span>
@@ -623,7 +640,8 @@ function buildMatchCards(nombre){
     </div></div>`;
   }
   html+='</div>';
-  return html;
+  // Devolver html + conteos reales calculados desde partidos
+  return {html, exactosReal, ptsMarcReal, resultadosReal, ptsResReal};
 }
 
 function buildBracket(nombre){
