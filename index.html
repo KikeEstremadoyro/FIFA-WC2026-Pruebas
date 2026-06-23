@@ -381,12 +381,28 @@ async function loadAll() {
     try { quinielaRows=await fetchCSV(GIDS.control); } catch(e2) {}
   }
 
-  // Cargar resultados reales desde TablaControl fila 3
+  // Cargar resultados reales desde TablaControl
+  // La fila de resultados reales es la que tiene col[3]==='Lg' y col[4]==='Nombre'
+  // con los scores reales en col 17+ (mismo offset que Quinielas2026)
   try {
     const ctrlRows = await fetchCSV(GIDS.control);
-    // Fila 3 (índice 2) tiene los resultados reales: s1,s2,pts por cada partido
-    if(ctrlRows.length > 2) {
-      realResults = ctrlRows[2]; // guardamos el array completo de la fila 3
+    // Buscar la fila header que tiene los resultados reales embebidos
+    // Es la fila donde col[3] trim === 'Lg' o col[4] trim === 'Nombre'
+    // y tiene datos numéricos en cols 17+
+    for(let i=0;i<Math.min(8,ctrlRows.length);i++){
+      const r=ctrlRows[i];
+      // La fila de resultados tiene 'Lg' en col 3 y 'Nombre' en col 4
+      // y tiene scores reales (números) a partir de col 17
+      if(r[3]&&r[3].trim()==='Lg' && r[4]&&r[4].trim()==='Nombre'){
+        realResults = r;
+        console.log('Resultados reales encontrados en fila índice', i, '— col17:', r[17], r[18], r[19]);
+        break;
+      }
+    }
+    if(!realResults.length) {
+      // Fallback: fila índice 3
+      realResults = ctrlRows[3] || [];
+      console.log('Usando fallback fila 3 de TablaControl');
     }
   } catch(e) { console.warn('No se cargaron resultados reales:', e.message); }
 
@@ -823,18 +839,58 @@ function buildProfetas(){
 // ══════════════════════════════════════════════
 // NOMINADOS — corregido
 // ══════════════════════════════════════════════
+// Calcular stats reales de exactos/resultados para todos los jugadores
+// recorriendo sus partidos en quinielaRows (se hace una vez y se cachea)
+let _statsCache = null;
+function calcAllStats(){
+  if(_statsCache) return _statsCache;
+  const cache={};
+  if(!quinielaRows.length) return cache;
+  const groups=Object.values(GRUPOS_INFO);
+  for(const r of quinielaRows){
+    const nombre=r[4]?.trim();
+    if(!nombre||nombre.startsWith('#')||nombre==='Nombre') continue;
+    let exactos=0, resultados=0, ptsMaRC=0;
+    let col=17;
+    for(const gInfo of groups){
+      for(let mi=0;mi<gInfo.matches.length;mi++){
+        const baseCol=col+mi*3;
+        const ptsRaw=r[baseCol+2];
+        const pts=parseInt(ptsRaw)||0;
+        const s1=r[baseCol]?.trim()||'';
+        const s2=r[baseCol+1]?.trim()||'';
+        const pending=s1===''||s2===''||!ptsRaw?.trim();
+        if(!pending){
+          if(pts===4){exactos++;ptsMaRC+=4;}
+          else if(pts===1){resultados++;}
+        }
+      }
+      col+=18;
+    }
+    cache[nombre]={exactos, resultados, ptsMaRC};
+  }
+  _statsCache=cache;
+  return cache;
+}
+
 function buildNominados(){
   if(!players.length) return;
-  const s=[...players].sort((a,b)=>b.tot-a.tot);
-  const avg=Math.round(players.reduce((x,p)=>x+p.tot,0)/players.length);
-  const byExactos=[...players].sort((a,b)=>b.exactos-a.exactos);
-  const byResultados=[...players].sort((a,b)=>b.resultados-a.resultados);
-  const byGpos=[...players].sort((a,b)=>b.gpos-a.gpos);
-  const byFG=[...players].sort((a,b)=>b.fg-a.fg);
-  const lowExactos=[...players].sort((a,b)=>a.exactos-b.exactos);
-  const lowResultados=[...players].sort((a,b)=>a.resultados-b.resultados);
-  const lowGpos=[...players].sort((a,b)=>a.gpos-b.gpos);
-  const lowFG=[...players].sort((a,b)=>a.fg-b.fg);
+  const allStats=calcAllStats();
+  // Enriquecer players con stats reales
+  const enriched=players.map(p=>{
+    const s=allStats[p.nombre]||{exactos:p.exactos,resultados:p.resultados,ptsMaRC:p.marc};
+    return {...p, exactosR:s.exactos, resultadosR:s.resultados, ptsMarcR:s.ptsMaRC};
+  });
+  const s=[...enriched].sort((a,b)=>b.tot-a.tot);
+  const avg=Math.round(enriched.reduce((x,p)=>x+p.tot,0)/enriched.length);
+  const byExactos=[...enriched].sort((a,b)=>b.exactosR-a.exactosR);
+  const byResultados=[...enriched].sort((a,b)=>b.resultadosR-a.resultadosR);
+  const byGpos=[...enriched].sort((a,b)=>b.gpos-a.gpos);
+  const byFG=[...enriched].sort((a,b)=>b.fg-a.fg);
+  const lowExactos=[...enriched].sort((a,b)=>a.exactosR-b.exactosR);
+  const lowResultados=[...enriched].sort((a,b)=>a.resultadosR-b.resultadosR);
+  const lowGpos=[...enriched].sort((a,b)=>a.gpos-b.gpos);
+  const lowFG=[...enriched].sort((a,b)=>a.fg-b.fg);
 
   // Familias por apellido
   const fams={};
@@ -853,12 +909,12 @@ function buildNominados(){
   const bot3=(arr,key,suf,extra=null)=>arr.slice(0,3).map((p,i)=>`<div class="nom-item"><span>${['🔻','🔻','🔻'][i]} ${p.nombre.split(' ').slice(0,2).join(' ')}</span><span class="nom-val" style="color:var(--rojo)">${extra?extra(p):p[key]}${suf}</span></div>`).join('');
 
   const noms=[
-    {icon:'🎯',cat:'Precisión',title:'Más marcadores exactos',body:nom3(byExactos,'exactos',' exactos')},
-    {icon:'✅',cat:'Resultados',title:'Más resultados correctos',body:nom3(byResultados,'resultados',' resultados')},
+    {icon:'🎯',cat:'Precisión',title:'Más marcadores exactos',body:nom3(byExactos,'exactosR',' exactos')},
+    {icon:'✅',cat:'Resultados',title:'Más resultados correctos',body:nom3(byResultados,'resultadosR',' correctos')},
     {icon:'🏅',cat:'Grupos',title:'Más pts en grupos (1ros/2dos/3ros)',body:nom3(byGpos,'gpos',' pts')},
     {icon:'🌟',cat:'Fase Grupos Total',title:'Mejor fase de grupos completa',body:nom3(byFG,'fg',' pts')},
-    {icon:'😬',cat:'MP Marcadores',title:'Menos marcadores exactos',body:bot3(lowExactos,'exactos',' exactos')},
-    {icon:'😤',cat:'MP Resultados',title:'Menos resultados correctos',body:bot3(lowResultados,'resultados',' resultados')},
+    {icon:'😬',cat:'MP Marcadores',title:'Menos marcadores exactos',body:bot3(lowExactos,'exactosR',' exactos')},
+    {icon:'😤',cat:'MP Resultados',title:'Menos resultados correctos',body:bot3(lowResultados,'resultadosR',' correctos')},
     {icon:'😱',cat:'MP Grupos',title:'Menos pts en grupos',body:bot3(lowGpos,'gpos',' pts')},
     {icon:'🏁',cat:'MP Fase Grupos',title:'Peor fase de grupos total',body:bot3(lowFG,'fg',' pts')},
     {icon:'👨‍👩‍👧‍👦',cat:'Familia',title:'Familias más activas',body:famSorted.map(([ap,names],i)=>`<div class="nom-item"><span>${['🥇','🥈','🥉'][i]} ${ap}</span><span class="nom-val">${names.length} quinielas</span></div>`).join('')||'<div style="font-size:12px;color:var(--text3)">Calculando...</div>'},
@@ -923,11 +979,13 @@ function buildFacts(){
   const s=[...players].sort((a,b)=>b.tot-a.tot);
   const avg=Math.round(players.reduce((x,p)=>x+p.tot,0)/players.length);
   const leader=s[0],second=s[1],last=s[s.length-1];
-  const byExactos=[...players].sort((a,b)=>b.exactos-a.exactos);
+  const allStatsF=calcAllStats();
+  const enrichedF=players.map(p=>({...p,...(allStatsF[p.nombre]||{}),exactosR:(allStatsF[p.nombre]?.exactos??p.exactos)}));
+  const byExactos=[...enrichedF].sort((a,b)=>b.exactosR-a.exactosR);
   const topEx=byExactos[0], minEx=byExactos[byExactos.length-1];
   const topGpos=[...players].sort((a,b)=>b.gpos-a.gpos)[0];
   const zeroGpos=players.filter(p=>p.gpos===0);
-  const zeroExactos=players.filter(p=>p.exactos===0);
+  const zeroExactos=enrichedF.filter(p=>p.exactosR===0);
   const belowAvg=players.filter(p=>p.tot<avg).length;
   const within3=players.filter(p=>Math.abs(p.tot-avg)<=3).length;
   const topFG=[...players].sort((a,b)=>b.fg-a.fg)[0];
@@ -945,12 +1003,12 @@ function buildFacts(){
 
   const facts=[
     {icon:'📏',text:`<strong>${leader.nombre.split(' ')[0]}</strong> lleva <strong>${gap} pts de ventaja</strong> sobre el 2do lugar (${second.nombre.split(' ')[0]}). ¡Pero el torneo apenas comienza!`},
-    {icon:'🎯',text:`<strong>${topEx.nombre.split(' ')[0]}</strong> lleva <strong>${topEx.exactos} marcadores exactos</strong> (${topEx.marc} pts). El menos preciso: <strong>${minEx.nombre.split(' ')[0]}</strong> con solo ${minEx.exactos}.`},
+    {icon:'🎯',text:`<strong>${topEx.nombre.split(' ')[0]}</strong> lleva <strong>${topEx.exactosR} marcadores exactos</strong>. El menos preciso: <strong>${minEx.nombre.split(' ')[0]}</strong> con solo ${minEx.exactosR}.`},
     {icon:'🏅',text:zeroGpos.length>0?`<strong>${zeroGpos.length} quinieleiros</strong> aún no tienen puntos de grupos — entre ellos: ${zeroGpos.slice(0,2).map(p=>p.nombre.split(' ')[0]).join(' y ')}.`:`¡Todos tienen al menos algún punto de grupos! El mejor: ${topGpos.nombre.split(' ')[0]} con ${topGpos.gpos} pts.`},
     {icon:'👨‍👩‍👧‍👦',text:`La familia <strong>Reyes/Retana</strong> tiene <strong>${reyesCount} quinielas</strong> en el torneo. ¡Toda la familia adentro!`},
     {icon:'📊',text:`<strong>${within3}</strong> de ${players.length} quinieleiros están a 3 pts o menos del promedio (${avg}). ¡El grupo está muy apretado en el centro!`},
     {icon:'🔴',text:`En el último lugar va <strong>${last.nombre.split(' ')[0]}</strong> con ${last.tot} pts — a ${leader.tot-last.tot} pts del líder. Hay que empezar a sumar, ¡olha só!`},
-    {icon:'⚽',text:zeroExactos.length>0?`<strong>${zeroExactos.length} quinieleiros</strong> todavía no aciertan ningún marcador exacto. ¡Que difícil es el exacto!`:`El más afinado es ${topEx.nombre.split(' ')[0]} con ${topEx.exactos} exactos de ${topEx.marc} pts.`},
+    {icon:'⚽',text:zeroExactos.length>0?`<strong>${zeroExactos.length} quinieleiros</strong> todavía no aciertan ningún marcador exacto. ¡Que difícil es el exacto!`:`El más afinado es ${topEx.nombre.split(' ')[0]} con ${topEx.exactosR} exactos.`},
     {icon:'🌟',text:`El mejor puntaje total en fase de grupos es de <strong>${topFG.fg} pts</strong> por <strong>${topFG.nombre.split(' ')[0]}</strong> (marcadores + resultados + grupos).`},
     {icon:'📈',text:`En la segunda ronda de grupos, <strong>${topR2.nombre.split(' ')[0]}</strong> dominó con <strong>${topR2.r2} pts</strong>. ¡Minha gente, que ronda!`},
     {icon:'🤝',text:`Hay <strong>${players.filter(p=>p.rank===s[0].rank).length}</strong> quiniela(s) en el primer lugar. ${players.filter(p=>p.rank===s[0].rank).length>1?'¡Empate en la cima!':'¡'+leader.nombre.split(' ')[0]+' está solo arriba!'}`},
@@ -972,12 +1030,14 @@ function getContext(){
   if(!players.length) return 'Sin datos.';
   const s=[...players].sort((a,b)=>b.tot-a.tot);
   const avg=Math.round(players.reduce((x,p)=>x+p.tot,0)/players.length);
-  const topEx=[...players].sort((a,b)=>b.exactos-a.exactos)[0];
+  const allStatsC=calcAllStats();
+  const enrichedC=players.map(p=>({...p,exactosR:(allStatsC[p.nombre]?.exactos??0)}));
+  const topEx=[...enrichedC].sort((a,b)=>b.exactosR-a.exactosR)[0];
   const zeroGpos=players.filter(p=>p.gpos===0).map(p=>p.nombre.split(' ')[0]).slice(0,3);
   return `QUINIELA FIFA WC 2026 - ${players.length} quinieleiros - Fase Grupos
 Líder: ${s[0].nombre} ${s[0].tot}pts (2do: ${s[1].nombre} ${s[1].tot}pts, ventaja ${s[0].tot-s[1].tot}pts)
 3ro: ${s[2].nombre} ${s[2].tot}pts | Último: ${s[s.length-1].nombre} ${s[s.length-1].tot}pts
-Promedio: ${avg}pts | Más exactos: ${topEx.nombre} (${topEx.exactos})
+Promedio: ${avg}pts | Más exactos: ${topEx.nombre} (${topEx.exactosR})
 Sin pts grupos: ${zeroGpos.join(', ')||'ninguno'}
 TOP5: ${s.slice(0,5).map((p,i)=>`#${i+1} ${p.nombre.split(' ')[0]} ${p.tot}`).join(' | ')}
 TODOS: ${players.map(p=>`${p.nombre}:${p.tot}:#${p.rank}`).join(',')}`;
@@ -997,7 +1057,7 @@ function smartAnswer(msg){
   if(q.includes('último')||q.includes('ultimo')||q.includes('abajo')||q.includes('final'))
     return `Olha só 🔴 En el último lugar va <strong>${last.nombre}</strong> con <strong>${last.tot} pts</strong> — a ${leader.tot-last.tot} pts del líder. ¡Nossa, hay que remontar!`;
   if(q.includes('exacto')||q.includes('marcador'))
-    return `🎯 El más afinado es <strong>${topEx.nombre}</strong> con <strong>${topEx.exactos} marcadores exactos</strong> (${topEx.marc} pts). Eita, ¡que precisión!`;
+    return `🎯 El más afinado es <strong>${topEx.nombre}</strong> con <strong>${topEx.exactosR||topEx.exactos} marcadores exactos</strong>. Eita, ¡que precisión!`;
   if(q.includes('promedio')||q.includes('media'))
     return `📊 El promedio de la quiniela es <strong>${avg} pts</strong>. ${players.filter(p=>p.tot>avg).length} quinieleiros están arriba y ${players.filter(p=>p.tot<avg).length} abajo del promedio.`;
   if(q.includes('mexico')||q.includes('méxico'))
@@ -1060,7 +1120,9 @@ async function genComment(){
   const s=[...players].sort((a,b)=>b.tot-a.tot);
   const leader=s[0],second=s[1],third=s[2],last=s[s.length-1];
   const avg=Math.round(players.reduce((x,p)=>x+p.tot,0)/players.length);
-  const topEx=[...players].sort((a,b)=>b.exactos-a.exactos)[0];
+  const allStatsG=calcAllStats();
+  const enrichedG=players.map(p=>({...p,exactosR:(allStatsG[p.nombre]?.exactos??0)}));
+  const topEx=[...enrichedG].sort((a,b)=>b.exactosR-a.exactosR)[0];
   const topGpos=[...players].sort((a,b)=>b.gpos-a.gpos)[0];
   const today=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
   const dateKey=new Date().toISOString().slice(0,10); // YYYY-MM-DD
@@ -1098,14 +1160,14 @@ async function genComment(){
   const body2 = hasMover
     ? ((bigMover.diff>0?'<strong>'+bigMover.nombre.split(' ')[0]+'</strong> subió <strong>'+bigMover.diff+' posiciones</strong> (del #'+bigMover.oldRank+' al #'+bigMover.newRank+'). ':'')+
       (bigDrop.diff>0?'<strong>'+bigDrop.nombre.split(' ')[0]+'</strong> bajó '+bigDrop.diff+' puestos (del #'+bigDrop.oldRank+' al #'+bigDrop.newRank+'). Eita, así es esto minha gente!':''))
-    : '<strong>'+topEx.nombre.split(' ')[0]+'</strong> es el quinieleiro más afinado con <strong>'+topEx.exactos+' marcadores exactos</strong>. '+(zeroGpos.length>0?zeroGpos.length+' aún sin pts de grupos — ¡caramba!':'¡Todos ya suman en grupos!');
+    : '<strong>'+topEx.nombre.split(' ')[0]+'</strong> es el quinieleiro más afinado con <strong>'+(topEx.exactosR||topEx.exactos)+' marcadores exactos</strong>. '+(zeroGpos.length>0?zeroGpos.length+' aún sin pts de grupos — ¡caramba!':'¡Todos ya suman en grupos!');
 
   // Tema 3: Curiosidad
   const zeroEx=players.filter(p=>p.exactos===0);
   const curiosFacts=[
-    players.filter(p=>p.exactos>0).length+' de '+players.length+' quinieleiros acertaron al menos un marcador exacto. El rey: '+topEx.nombre.split(' ')[0]+' con '+topEx.exactos+'. ¡Nossa!',
+    enrichedG.filter(p=>p.exactosR>0).length+' de '+players.length+' quinieleiros acertaron al menos un marcador exacto. El rey: '+topEx.nombre.split(' ')[0]+' con '+(topEx.exactosR||topEx.exactos)+'. ¡Nossa!',
     topGpos.nombre.split(' ')[0]+' lleva '+topGpos.gpos+' pts de lugares de grupo — el mejor clasificando equipos. '+(zeroGpos.length>0?zeroGpos.length+' quinieleiros sin pts de grupos todavía.':'¡Todos clasificaron bien!'),
-    zeroEx.length>0?'<strong>'+zeroEx.length+' quinieleiros</strong> todavía sin ningún marcador exacto. Entre ellos: '+zeroEx.slice(0,2).map(p=>p.nombre.split(' ')[0]).join(' y ')+'. ¡Eita, así está el fuego!':'¡Olha só! Ya todos acertaron al menos un marcador exacto. ¡Que nivel!',
+    const zeroExG=enrichedG.filter(p=>p.exactosR===0); zeroExG.length>0?'<strong>'+zeroExG.length+' quinieleiros</strong> todavía sin ningún marcador exacto. Entre ellos: '+zeroExG.slice(0,2).map(p=>p.nombre.split(' ')[0]).join(' y ')+'. ¡Eita, así está el fuego!':'¡Olha só! Ya todos acertaron al menos un marcador exacto. ¡Que nivel!',
     'El último es <strong>'+last.nombre.split(' ')[0]+'</strong> con '+last.tot+' pts, a '+(leader.tot-last.tot)+' del líder. En eliminatorias todo puede cambiar minha gente — ¡caramba!',
   ];
   const hl3='🧩 Curiosidad del día';
