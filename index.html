@@ -815,54 +815,88 @@ function buildBracket(nombre){
 }
 
 // ══════════════════════════════════════════════
-// PROFETAS
+// PROFETAS — estadísticas fijas del bracket
 // ══════════════════════════════════════════════
-function buildProfetas(){
-  if(!quinielaRows.length){document.getElementById('profetas-cont').innerHTML='<div class="empty"><p>Cargando...</p></div>';return;}
-  const champCount={},thirdCount={},semi={};
+
+// Cache (se calcula UNA sola vez al cargar)
+let _profCache = null;
+
+function calcProfStats(){
+  if(_profCache) return _profCache;
+  if(!quinielaRows.length) return null;
+
+  // Columnas exactas del sheet Quinielas2026 (cols 0-indexed, verificadas):
+  // Clasificados 1ro/2do x 12 grupos: empieza en col donde el header dice '1ro'
+  // 3er Lugar: col LA = 312  |  Campeón: col LB = 313
+  // (Octavos=JS=278, Cuartos=KJ=295, Semis=KS=304, Finalistas=KX=309)
+  const FIXED = { champ:313, ter3:312, fin:309, semi:304, cto:295, oct:278 };
+
+  // Encontrar col1ro dinámicamente desde el header
+  let col1ro=[], col2do=[];
+  for(const r of quinielaRows){
+    const idxs=r.reduce((a,c,i)=>{if(c&&c.trim()==='1ro')a.push(i);return a;},[]);
+    if(idxs.length>=6){col1ro=idxs; col2do=idxs.map(c=>c+1); break;}
+  }
+
+  const isTeam = v => v && v!=='0' && v.length>1 && !/^\d+$/.test(v) && v!=='Nombre';
+  const getT = (r,c) => { const v=r[c]?.trim(); return isTeam(v)?v:null; };
+
+  const champCount={}, thirdCount={}, finCount={}, semiCount={}, ctoCount={}, octCount={};
+  const gLetras=['A','B','C','D','E','F','G','H','I','J','K','L'];
+  const primerCount={}, segCount={};
+  gLetras.forEach(g=>{primerCount[g]={};segCount[g]={};});
   let total=0;
-  // Encontrar el header row para saber col de campeón
-  const hdrProfeta=quinielaRows.find(r=>r[4]&&r[4].trim()==='Nombre');
-  // Buscar columna del campeón en el header (última columna con nombre de equipo esperado)
-  // Encontrar índice de col del nombre (col4 en Quinielas, col4 en TablaControl)
-  // y col del campeón (última col string no-numérica antes del 0 final)
-  const SKIP_WORDS=new Set(['Nombre','R1','R2','R3','R4','Marc','Gpos','Tot','Dif','Semi','8vos','4tos','1ro','2do','3ro','Lg','Pag','Quin','PagFIFA']);
+
   for(const r of quinielaRows){
     const nombre=r[4]?.trim();
-    // Filtrar: header rows, vacíos, marcadores de sección
-    if(!nombre||nombre==='Nombre'||nombre.startsWith('#')||SKIP_WORDS.has(nombre)) continue;
-    // Verificar que tiene puntos numéricos en cols 5-9 (R1,R2,R3,Marc,Gpos)
-    // Al menos uno de R1,R2,R3 debe ser número positivo
-    const r1=parseInt(r[5]),r2=parseInt(r[6]),r3=parseInt(r[7]);
-    if(isNaN(r1)&&isNaN(r2)&&isNaN(r3)) continue;
-    if(r1===0&&r2===0&&r3===0&&parseInt(r[14])===0) continue; // fila vacía
-    // Buscar campeón desde el final: primer string largo no-numérico
-    let ci=r.length-1;
-    let safety=0;
-    while(ci>10&&safety<200){
-      safety++;
-      const v=r[ci]?.trim()||'';
-      if(v&&v!=='0'&&v.length>2&&!/^\d+$/.test(v)&&!SKIP_WORDS.has(v)) break;
-      ci--;
-    }
-    const ch=r[ci]?.trim();
-    if(ch&&ch!=='0'&&ch.length>2&&!/^\d/.test(ch)&&!SKIP_WORDS.has(ch)){
-      champCount[ch]=(champCount[ch]||0)+1;total++;
-    }
-    // 3er lugar: una posición antes del campeón
-    let ci2=ci-1;
-    while(ci2>10){const v=r[ci2]?.trim()||'';if(v&&v.length>2&&!/^\d+$/.test(v)&&!SKIP_WORDS.has(v))break;ci2--;}
-    const th=r[ci2]?.trim();
-    if(th&&th!=='0'&&th.length>2&&!/^\d/.test(th)&&!SKIP_WORDS.has(th)) thirdCount[th]=(thirdCount[th]||0)+1;
-    // Semis: 4 posiciones antes del campeón aprox
-    for(let s=2;s<=6;s++){
-      let cis=ci-s;
-      while(cis>10){const v=r[cis]?.trim()||'';if(v&&v.length>2&&!/^\d+$/.test(v)&&!SKIP_WORDS.has(v))break;cis--;}
-      const t=r[cis]?.trim();
-      if(t&&t!=='0'&&t.length>2&&!/^\d/.test(t)&&!SKIP_WORDS.has(t))semi[t]=(semi[t]||0)+1;
+    if(!nombre||nombre==='Nombre'||!/[a-zA-ZáéíóúñÁÉÍÓÚÑ]/.test(nombre[0])) continue;
+    if(isNaN(parseInt(r[5]))&&isNaN(parseInt(r[6]))) continue;
+
+    // Campeón (col LB=313, fallback LB-1=312 si hay desplazamiento)
+    const ch = getT(r,FIXED.champ) || getT(r,FIXED.champ-1);
+    if(!ch) continue;
+    champCount[ch]=(champCount[ch]||0)+1; total++;
+
+    // 3er lugar (col LA=312)
+    const th = getT(r,FIXED.ter3) || getT(r,FIXED.ter3-1);
+    if(th) thirdCount[th]=(thirdCount[th]||0)+1;
+
+    // Finalistas (KX-KZ = 309-311)
+    for(let i=0;i<3;i++){const t=getT(r,FIXED.fin+i);if(t)finCount[t]=(finCount[t]||0)+1;}
+    // Semis (KS-KW = 304-308)
+    for(let i=0;i<5;i++){const t=getT(r,FIXED.semi+i);if(t)semiCount[t]=(semiCount[t]||0)+1;}
+    // Cuartos (KJ-KR = 295-303)
+    for(let i=0;i<9;i++){const t=getT(r,FIXED.cto+i);if(t)ctoCount[t]=(ctoCount[t]||0)+1;}
+    // Octavos (JS-KI = 278-294)
+    for(let i=0;i<17;i++){const t=getT(r,FIXED.oct+i);if(t)octCount[t]=(octCount[t]||0)+1;}
+
+    // Clasificados 1ro/2do por grupo
+    if(col1ro.length>=12){
+      gLetras.forEach((g,gi)=>{
+        const p1=getT(r,col1ro[gi]), p2=getT(r,col2do[gi]);
+        if(p1)primerCount[g][p1]=(primerCount[g][p1]||0)+1;
+        if(p2)segCount[g][p2]=(segCount[g][p2]||0)+1;
+      });
     }
   }
-  if(!total){document.getElementById('profetas-cont').innerHTML='<div class="empty"><p>Sin datos eliminatorios.</p></div>';return;}
+
+  _profCache={champCount,thirdCount,finCount,semiCount,ctoCount,octCount,primerCount,segCount,total,col1ro};
+  return _profCache;
+}
+
+function buildProfetas(){
+  if(!quinielaRows.length){
+    document.getElementById('profetas-cont').innerHTML='<div class="empty"><div class="spinner"></div><p>Cargando datos...</p></div>';
+    return;
+  }
+
+  const stats=calcProfStats();
+  if(!stats||!stats.total){
+    document.getElementById('profetas-cont').innerHTML='<div class="empty"><p>Sin datos de bracket aún. Se muestran aquí cuando los quinieleiros completen sus pronósticos eliminatorios.</p></div>';
+    return;
+  }
+
+  const {champCount,thirdCount,finCount,semiCount,ctoCount,octCount,primerCount,segCount,total}=stats;
   const sort12=(obj,div=1)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([n,c])=>({n,c,pct:Math.round(c/div*100)}));
   const bars=(entries,max,color)=>entries.map(({n,c,pct},i)=>`<div class="dist-bar-row"><div class="dist-name">${i+1}. ${n}</div><div class="dist-bar"><div class="dist-fill" style="width:${Math.round(c/max*100)}%;background:${color}"></div></div><div class="dist-count">${c}</div><div class="dist-pct">${pct}%</div></div>`).join('');
 
@@ -872,60 +906,57 @@ function buildProfetas(){
   const ss=sort12(semiCount,total*4);
   const ctos=sort12(ctoCount,total*8);
   const octs=sort12(octCount,total*16);
-  const mc=cs[0]?.c||1, mt=ts[0]?.c||1, mf=fs[0]?.c||1, ms=ss[0]?.c||1, mct=ctos[0]?.c||1, mo=octs[0]?.c||1;
+  const mc=cs[0]?.c||1,mt=ts[0]?.c||1,mf=fs[0]?.c||1,ms=ss[0]?.c||1,mct=ctos[0]?.c||1,mo=octs[0]?.c||1;
 
-  // Sección especial: México - hasta dónde llega y con quién juega
+  // México stats
   const mexChamp=champCount['México']||0;
-  const mexFin=finCount['México']||0;
-  const mexSemi=semiCount['México']||0;
-  const mexCto=ctoCount['México']||0;
-  const mexOct=octCount['México']||0;
-  
-  // Rival de México en 16vos (el equipo que más veces aparece junto a México en oct)
-  // México llega como 1ro del Grupo A → juega vs 2do del Grupo B
+  const mexFin=(finCount['México']||0);
+  const mexSemi=(semiCount['México']||0);
+  const mexCto=(ctoCount['México']||0);
+  const mexOct=(octCount['México']||0);
+
+  // Rival de México en 16vos (1ro Grupo A vs 2do Grupo B)
   let mexRival16={};
-  const gLetras=['A','B','C','D','E','F','G','H','I','J','K','L'];
   if(stats.col1ro.length>=2){
+    const col2doB=stats.col1ro[1]+1;
     for(const r of quinielaRows){
       const nombre=r[4]?.trim();
-      if(!nombre||nombre==='Nombre'||isNaN(parseInt(r[5]))) continue;
-      // 1ro de A juega vs 2do de B
-      const rival=r[stats.col1ro[1]+1]?.trim(); // col 2do del Grupo B
-      if(rival&&rival!=='0'&&rival.length>1&&isNaN(parseInt(rival))) mexRival16[rival]=(mexRival16[rival]||0)+1;
+      if(!nombre||nombre==='Nombre'||!/[a-zA-ZáéíóúñÁÉÍÓÚÑ]/.test(nombre[0])) continue;
+      const v=r[col2doB]?.trim();
+      if(v&&v!=='0'&&v.length>1&&!/^\d+$/.test(v)) mexRival16[v]=(mexRival16[v]||0)+1;
     }
   }
-  const topMexRival=Object.entries(mexRival16).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  
+  const topRival=Object.entries(mexRival16).sort((a,b)=>b[1]-a[1]).slice(0,3);
+
   const mexHtml=`<div class="card" style="margin-top:16px">
     <div class="card-hdr"><div class="card-title">🇲🇽 México — ¿Hasta dónde llega?</div><div style="font-size:11px;color:var(--text3)">${total} quinielas</div></div>
-    <div style="padding:14px;display:flex;flex-wrap:wrap;gap:12px">
+    <div style="padding:14px;display:flex;flex-wrap:wrap;gap:10px">
       ${[['🏆 Campeón',mexChamp],['🥈 Finalista',mexFin],['4️⃣ Semis',mexSemi],['⚽ Cuartos',mexCto],['🔟 16vos',mexOct]].map(([lbl,c])=>`
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:100px;text-align:center">
-          <div style="font-size:11px;color:var(--text3)">${lbl}</div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center;min-width:90px">
+          <div style="font-size:10px;color:var(--text3)">${lbl}</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--verde)">${c}</div>
           <div style="font-size:10px;color:var(--text3)">${Math.round(c/total*100)}%</div>
         </div>`).join('')}
     </div>
-    ${topMexRival.length>0?`<div style="padding:0 14px 14px"><div style="font-size:11px;color:var(--text3);margin-bottom:6px">Rival más frecuente en 16vos:</div>${topMexRival.map(([n,c])=>`<span style="display:inline-block;background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;margin-right:6px">${n} <span style="color:var(--verde)">${c}</span></span>`).join('')}</div>`:''}
+    ${topRival.length?`<div style="padding:0 14px 12px;font-size:12px;color:var(--text2)">Rival más frecuente de México en 16vos: ${topRival.map(([n,c])=>`<strong>${n}</strong> (${c} quinielas)`).join(', ')}</div>`:''}
   </div>`;
 
   document.getElementById('profetas-cont').innerHTML=`
-  <p style="color:var(--text2);font-size:13px;margin-bottom:20px">Pronósticos eliminatorios de <strong>${total}</strong> de ${players.length} quinielas (las que tienen bracket completo).</p>
-  <div class="grid2" style="gap:16px">
+  <p style="color:var(--text2);font-size:13px;margin-bottom:16px">Pronósticos eliminatorios de <strong>${total}</strong> de ${players.length} quinielas.</p>
+  <div class="grid2" style="gap:14px">
     <div class="card"><div class="card-hdr"><div class="card-title">🏆 Campeón del Mundo</div><div style="font-size:11px;color:var(--text3)">${total} quinielas</div></div><div style="padding:14px">${bars(cs,mc,'var(--dorado)')}</div></div>
     <div class="card"><div class="card-hdr"><div class="card-title">🥉 Tercer Lugar</div></div><div style="padding:14px">${bars(ts,mt,'#CD7F32')}</div></div>
   </div>
-  <div class="grid2" style="gap:16px;margin-top:16px">
+  <div class="grid2" style="gap:14px;margin-top:14px">
     <div class="card"><div class="card-hdr"><div class="card-title">🥈 Finalistas</div></div><div style="padding:14px">${bars(fs,mf,'rgba(192,192,192,.8)')}</div></div>
     <div class="card"><div class="card-hdr"><div class="card-title">🔥 Semifinalistas</div></div><div style="padding:14px">${bars(ss,ms,'var(--naranja)')}</div></div>
   </div>
-  <div class="grid2" style="gap:16px;margin-top:16px">
+  <div class="grid2" style="gap:14px;margin-top:14px">
     <div class="card"><div class="card-hdr"><div class="card-title">⚽ Cuartofinalistas</div></div><div style="padding:14px">${bars(ctos,mct,'var(--azul)')}</div></div>
-    <div class="card"><div class="card-hdr"><div class="card-title">🔟 Pasan a 16vos (más veces)</div></div><div style="padding:14px">${bars(octs,mo,'rgba(0,200,83,.4)')}</div></div>
+    <div class="card"><div class="card-hdr"><div class="card-title">🔟 Más veces en 16vos</div></div><div style="padding:14px">${bars(octs,mo,'rgba(0,200,83,.4)')}</div></div>
   </div>
   ${mexHtml}`;
 }
-
 // ══════════════════════════════════════════════
 // NOMINADOS — corregido
 // ══════════════════════════════════════════════
