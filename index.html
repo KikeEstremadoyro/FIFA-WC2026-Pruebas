@@ -1167,7 +1167,7 @@ async function genComment(){
   const curiosFacts=[
     enrichedG.filter(p=>p.exactosR>0).length+' de '+players.length+' quinieleiros acertaron al menos un marcador exacto. El rey: '+topEx.nombre.split(' ')[0]+' con '+(topEx.exactosR||topEx.exactos)+'. ¡Nossa!',
     topGpos.nombre.split(' ')[0]+' lleva '+topGpos.gpos+' pts de lugares de grupo — el mejor clasificando equipos. '+(zeroGpos.length>0?zeroGpos.length+' quinieleiros sin pts de grupos todavía.':'¡Todos clasificaron bien!'),
-    const zeroExG=enrichedG.filter(p=>p.exactosR===0); zeroExG.length>0?'<strong>'+zeroExG.length+' quinieleiros</strong> todavía sin ningún marcador exacto. Entre ellos: '+zeroExG.slice(0,2).map(p=>p.nombre.split(' ')[0]).join(' y ')+'. ¡Eita, así está el fuego!':'¡Olha só! Ya todos acertaron al menos un marcador exacto. ¡Que nivel!',
+    (()=>{const zE=enrichedF.filter(p=>p.exactosR===0);return zE.length>0?'<strong>'+zE.length+' quinieleiros</strong> todavía sin ningún marcador exacto. Entre ellos: '+zE.slice(0,2).map(p=>p.nombre.split(' ')[0]).join(' y ')+'. ¡Eita, así está el fuego!':'¡Olha só! Ya todos acertaron al menos un marcador exacto. ¡Que nivel!';})(),
     'El último es <strong>'+last.nombre.split(' ')[0]+'</strong> con '+last.tot+' pts, a '+(leader.tot-last.tot)+' del líder. En eliminatorias todo puede cambiar minha gente — ¡caramba!',
   ];
   const hl3='🧩 Curiosidad del día';
