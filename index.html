@@ -289,6 +289,19 @@ const GIDS = { tabla:'2061338906', quinielas:'1616528942', control:'1834452765' 
 const csvUrl = gid => `${BASE}/pub?gid=${gid}&single=true&output=csv`;
 
 // ══════════════════════════════════════════════
+// ESTADO DEL TORNEO — actualizar conforme avanza
+// ══════════════════════════════════════════════
+// Equipos matemáticamente eliminados (en rojo en bracket)
+const ELIMINADOS = new Set([
+  'Haití','Haiti','Turquía','Turquia','Túnez','Tunez','Tunez','Jordania','Panamá','Panama'
+]);
+// Equipos ya clasificados a 16avos (en azul claro en bracket)
+const CLASIFICADOS_16 = new Set([
+  'México','Mexico','USA','Alemania','Argentina','Francia','Noruega',
+  // agregar más conforme se confirmen
+]);
+
+// ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
 let players = [], sortDir = {col:'rank',asc:true};
@@ -673,9 +686,13 @@ function buildMatchCards(nombre){
       const pts2Label = realC2 ? (realC2===n2 ? '<span style="color:#C0C0C0;font-weight:700;font-size:10px;margin-left:4px">+3pts ✓</span>' : '<span style="color:var(--rojo);font-size:10px;margin-left:4px">✗ Real: '+realC2+'</span>') : (n2!=='?'?'<span style="color:var(--text3);font-size:9px;margin-left:4px">⏳</span>':'');
       // badge: solo cuando hay resultado real
       const badge = ptsBono>=4?'<span class="badge b-exact" style="font-size:9px">⭐+4</span>':ptsBono>0?'<span class="badge b-result" style="font-size:9px">✓+'+ptsBono+'</span>':realC1&&realC1!==n1?'<span class="badge b-miss" style="font-size:9px">✗</span>':!realC1&&n1!=='?'?'<span class="badge b-pend" style="font-size:9px">⏳</span>':'';
-      // 3er lugar: buscar si hay un equipo de este grupo en ter8 (terceros pronosticados)
+      // 3er lugar: buscar si hay un equipo de este grupo en los terceros del bracket
+      // ter8 no está en scope aquí — leer directamente de las cols de terceros (JJ=269, 8 slots x3)
       const teamsInGrp = GRUPOS_INFO[letra]?.teams||[];
-      const ter3 = ter8.find(t=>t&&teamsInGrp.some(eq=>eq===t||eq.toLowerCase()===(t||'').toLowerCase()));
+      // Buscar en las 8 slots de terceros (cols 269-292, cada 3 cols)
+      const ter3Cols = [269,272,275,278,281,284,287,290];
+      const ter3 = ter3Cols.map(tc=>row[tc]?.trim()).filter(Boolean)
+                   .find(t=>t&&t!=='0'&&teamsInGrp.some(eq=>eq===t||eq.toLowerCase()===t.toLowerCase()));
       const ter3Html = ter3
         ? `<div style="padding:4px 10px;border-top:1px dashed var(--border);font-size:10px;display:flex;align-items:center;gap:4px">
             <span style="color:#CD7F32">🥉</span><span style="color:var(--text2)">${ter3}</span>
@@ -741,11 +758,15 @@ function buildBracket(nombre){
     const empty=!v||v==='?';
     const hit=realPool.includes(v)&&!empty;
     const miss=realPool.length>0&&!hit&&!empty;
+    const elim=!empty&&ELIMINADOS.has(v);
+    const clasif=!empty&&CLASIFICADOS_16.has(v);
     return `<div style="padding:5px 8px;font-size:11px;border-bottom:1px solid var(--border);
       ${w?'background:rgba(0,200,83,.1);color:var(--verde);font-weight:600':''}
       ${empty?'color:var(--text3);font-style:italic':''}
-      ${miss&&!w?'color:var(--rojo)':''}">
-      ${hit?'✓ ':miss?'✗ ':''}${empty?'?':v}
+      ${miss&&!w?'color:var(--rojo)':''}
+      ${elim&&!hit&&!miss&&!w?'color:var(--rojo);text-decoration:line-through;opacity:0.7':''}
+      ${clasif&&!hit&&!miss&&!elim&&!w?'color:var(--azul);font-weight:500':''}">
+      ${hit?'✓ ':elim&&!hit?'✗ ':''}${empty?'?':v}
     </div>`;
   };
   const bm=(a,b,rPool=[])=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:5px">${bt(a,rPool,a===champion)}${bt(b,rPool,b===champion)}</div>`;
@@ -821,9 +842,15 @@ function buildBracket(nombre){
     const empty=!v||v==='?'||v==='3ro*';
     const hit=rPool.length>0&&rPool.includes(v)&&!empty;
     const miss=rPool.length>0&&!hit&&!empty;
+    const elim=!empty&&ELIMINADOS.has(v);
+    const clasif=!empty&&CLASIFICADOS_16.has(v);
     return `<div style="padding:4px 7px;font-size:10px;border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;
-      ${empty?'color:var(--text3);font-style:italic':''}${hit?'color:var(--verde);font-weight:600':''}${miss&&!hit?'color:var(--rojo)':''}">
-      ${hit?'✓ ':miss?'✗ ':''}${empty?v||'?':v}</div>`;
+      ${empty?'color:var(--text3);font-style:italic':''}
+      ${hit?'color:var(--verde);font-weight:600':''}
+      ${miss&&!hit?'color:var(--rojo)':''}
+      ${elim&&!hit&&!miss?'color:var(--rojo);text-decoration:line-through;opacity:0.7':''}
+      ${clasif&&!hit&&!miss&&!elim?'color:var(--azul);font-weight:500':''}">
+      ${hit?'✓ ':elim&&!hit?'✗ ':''}${empty?v||'?':v}</div>`;
   };
   const bme=(a,b,rPool=[])=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-bottom:4px">${bte(a,rPool)}${bte(b,rPool)}</div>`;
 
