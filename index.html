@@ -291,15 +291,25 @@ const csvUrl = gid => `${BASE}/pub?gid=${gid}&single=true&output=csv`;
 // ══════════════════════════════════════════════
 // ESTADO DEL TORNEO — actualizar conforme avanza
 // ══════════════════════════════════════════════
-// Equipos matemáticamente eliminados (en rojo en bracket)
-const ELIMINADOS = new Set([
-  'Haití','Haiti','Turquía','Turquia','Túnez','Tunez','Tunez','Jordania','Panamá','Panama'
+// Equipos eliminados/clasificados — se calculan dinámicamente desde TablaControl
+// pero se inicializan con los conocidos actualmente
+let ELIMINADOS = new Set([
+  'Haití','Haiti','Turquía','Turquia','Túnez','Tunez','Jordania','Panamá','Panama'
 ]);
-// Equipos ya clasificados a 16avos (en azul claro en bracket)
-const CLASIFICADOS_16 = new Set([
+let CLASIFICADOS_16 = new Set([
   'México','Mexico','USA','Alemania','Argentina','Francia','Noruega',
-  // agregar más conforme se confirmen
 ]);
+
+// Actualizar dinámicamente desde realResults cuando esté disponible
+function updateTorneoSets(){
+  if(!realResults.length) return;
+  // La fila de resultados reales tiene los 1ros y 2dos confirmados en cols 233+
+  // Si un 1ro o 2do tiene resultado (pts > 0 en col+2), ese equipo clasifica
+  // Si un equipo aparece solo en col de 3ros sin confirmar, puede ser eliminado
+  // Por ahora mantenemos el Set manual — se puede expandir cuando haya más resultados
+  // Los 1ros/2dos de grupos con todos partidos jugados están en CLASIFICADOS_16
+  // Los que no puedan matemáticamente clasificar están en ELIMINADOS
+}
 
 // ══════════════════════════════════════════════
 // STATE
@@ -722,208 +732,219 @@ function buildBracket(nombre){
   for(const r of quinielaRows){if(r[4]&&r[4].trim()===nombre){row=r;break;}}
   if(!row) return '<p style="color:var(--text3);font-size:13px">Datos del bracket cargando...</p>';
 
-  let champIdx=row.length-1;
-  while(champIdx>0&&(!row[champIdx]||row[champIdx].trim()==='0'||row[champIdx].trim()===''))champIdx--;
-  const endData=[];
-  for(let i=Math.max(0,champIdx-90);i<=champIdx;i++){
-    const v=row[i]?.trim();
-    if(v&&v!=='0'&&!/^\d+$/.test(v)&&v.length>1&&!['pts','R1','R2','R3','R4'].includes(v)) endData.push(v);
-  }
-  const all=endData;
-  const camp2=all.slice(-2),fin2=all.slice(-4,-2),semi4=all.slice(-8,-4),cto8=all.slice(-16,-8),oct16=all.slice(-32,-16),ter8=all.slice(-40,-32);
-  const champion=camp2[1]||'?',thirdPlace=camp2[0]||'?';
-
-  // Resultados reales del bracket (mismas columnas en realResults)
-  const realEndData=[];
-  if(realResults.length>0){
-    for(let i=Math.max(0,champIdx-90);i<=champIdx;i++){
-      const v=realResults[i]?.trim();
-      if(v&&v!=='0'&&!/^\d+$/.test(v)&&v.length>1&&!['pts','R1','R2','R3','R4'].includes(v)) realEndData.push(v);
-    }
-  }
-  const realAll=realEndData;
-  const realChamp=realAll.slice(-2)[1]||'';
-  const realFin=realAll.slice(-4,-2);
-  const realSemi=realAll.slice(-8,-4);
-  const realCto=realAll.slice(-16,-8);
-  const realOct=realAll.slice(-32,-16);
-
-  const octPairs=[]; for(let i=0;i<oct16.length;i+=2) octPairs.push([oct16[i]||'?',oct16[i+1]||'?']);
-  const ctoPairs=[]; for(let i=0;i<cto8.length;i+=2) ctoPairs.push([cto8[i]||'?',cto8[i+1]||'?']);
-  const semiPairs=[[semi4[0]||'?',semi4[1]||'?'],[semi4[2]||'?',semi4[3]||'?']];
-  const f1=fin2[0]||'?',f2=fin2[1]||'?';
-
-  // Función para renderizar equipo con indicador de si acertó
-  const bt=(v,realPool=[],w=false)=>{
-    const empty=!v||v==='?';
-    const hit=realPool.includes(v)&&!empty;
-    const miss=realPool.length>0&&!hit&&!empty;
-    const elim=!empty&&ELIMINADOS.has(v);
-    const clasif=!empty&&CLASIFICADOS_16.has(v);
-    return `<div style="padding:5px 8px;font-size:11px;border-bottom:1px solid var(--border);
-      ${w?'background:rgba(0,200,83,.1);color:var(--verde);font-weight:600':''}
-      ${empty?'color:var(--text3);font-style:italic':''}
-      ${miss&&!w?'color:var(--rojo)':''}
-      ${elim&&!hit&&!miss&&!w?'color:var(--rojo);text-decoration:line-through;opacity:0.7':''}
-      ${clasif&&!hit&&!miss&&!elim&&!w?'color:var(--azul);font-weight:500':''}">
-      ${hit?'✓ ':elim&&!hit?'✗ ':''}${empty?'?':v}
-    </div>`;
-  };
-  const bm=(a,b,rPool=[])=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:5px">${bt(a,rPool,a===champion)}${bt(b,rPool,b===champion)}</div>`;
-  const br=(title,content,mw='130px')=>`<div style="display:flex;flex-direction:column;min-width:${mw};padding:0 5px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);text-align:center;margin-bottom:8px;padding:3px 0;border-bottom:1px solid var(--border)">${title}</div>${content}</div>`;
-
-  // ── BRACKET OFICIAL FIFA WC2026 ─────────────────────────────────
-  // Los 16 partidos de 16vos (Round of 32) según FIFA Annex C:
-  // M73: 2A vs 2B   M74: 1E vs 3ro*  M75: 1F vs 2C   M76: 1C vs 2F
-  // M77: 1I vs 3ro* M78: 2E vs 2I    M79: 1A vs 3ro* M80: 1L vs 3ro*
-  // M81: 1D vs 3ro* M82: 1G vs 3ro*  M83: 2K vs 2L   M84: 1H vs 2J
-  // M85: 1B vs 3ro* M86: 1J vs 2H    M87: 1K vs 3ro* M88: 2D vs 2G
-  // Los 8 terceros se asignan según combinación de grupos (495 posibles)
-  // Los que tienen "3ro*" dependen de cuáles grupos producen los 8 mejores 3eros
+  // ── Leer datos del bracket desde columnas fijas ─────────────────
+  // Campeón = col LB (313), 3ro = LA (312), Finalistas = KX-KZ (309-311)
+  // Semis = KS-KW (304-308), Cuartos = KJ-KR (295-303), Octavos = JS-KI (278-294)
+  // Terceros = JJ-JQ (269-292, 8 slots x3)
   
+  const isTeam = v => v && v.trim() && v.trim()!=='0' && !/^\d+$/.test(v.trim()) && v.trim().length>1;
+  const getT = (col) => { const v=row[col]?.trim(); return isTeam(v)?v:null; };
+
+  // Leer clasificados 1ro/2do por grupo
   let col1ro=[];
   const hdr=quinielaRows.find(r=>r.some(c=>c&&c.trim()==='1ro'));
   if(hdr) hdr.forEach((v,i)=>{if(v&&v.trim()==='1ro')col1ro.push(i);});
-
-  const gLetras2=['A','B','C','D','E','F','G','H','I','J','K','L'];
+  const gL=['A','B','C','D','E','F','G','H','I','J','K','L'];
   const cl1={},cl2={};
   if(col1ro.length>=12){
-    for(let gi=0;gi<12;gi++){
-      const c=col1ro[gi];
-      const p1=row[c]?.trim()||''; const p2=row[c+1]?.trim()||'';
-      cl1[gLetras2[gi]]=p1&&p1!=='0'?p1:'?';
-      cl2[gLetras2[gi]]=p2&&p2!=='0'?p2:'?';
-    }
+    gL.forEach((g,i)=>{
+      cl1[g]=getT(col1ro[i])||'?';
+      cl2[g]=getT(col1ro[i]+1)||'?';
+    });
   }
-  
-  // Intentar determinar qué 3ero va contra qué 1ro
-  // Usando tabla FIFA Annex C con 495 combinaciones.
-  // Los ter8 son los 3eros que el quinielero pronosticó.
-  // Necesitamos saber de qué grupos vienen para usar la tabla.
-  // Simplificación: los mostramos en el orden del bracket oficial.
-  // 1A vs 3ro (grupos C/E/F/H/I), 1E vs 3ro (A/B/C/D/F), etc.
-  // Sin saber los grupos exactos, ponemos el 3ro pronosticado más relevante.
-  
-  // Grupos que los 3eros más comunes cubren por partido:
-  // M74 (1E): 3ro de A,B,C,D,F  
-  // M77 (1I): 3ro de C,D,F,G,H
-  // M79 (1A): 3ro de C,E,F,H,I
-  // M80 (1L): 3ro de E,H,I,J,K
-  // M81 (1D): 3ro de B,E,F,I,J
-  // M82 (1G): 3ro de A,E,H,I,J
-  // M85 (1B): 3ro de E,F,G,I,J
-  // M87 (1K): 3ro de D,E,I,J,L
-  
-  // Asignar los 8 terceros a los 8 partidos con 3ros
-  const ter = ter8.slice(0,8);
-  const t3 = (i) => ter[i] || '3ro*';
-  
-  // 16 partidos oficiales FIFA WC2026 Round of 32
+
+  // Terceros pronosticados (cols 269-291, slots de 3 cols)
+  const ter8=[];
+  for(let i=0;i<8;i++){ const t=getT(269+i*3); if(t) ter8.push(t); }
+
+  // Octavos = 16 equipos que PASAN a 8vos (ganadores de 16vos), cols JS=278, 8 slots
+  // Cuartos = 8 que pasan, Semis = 4, Finalistas = 2, Campeón = 1
+  // El sheet almacena los GANADORES (los que avanzan), no los emparejamientos
+  const oct16=[]; for(let i=0;i<16;i++){const t=getT(278+i); if(t)oct16.push(t); else oct16.push('?');}
+  const cto8=[];  for(let i=0;i<8;i++){ const t=getT(295+i); if(t)cto8.push(t);  else cto8.push('?');}
+  const semi4=[]; for(let i=0;i<4;i++){ const t=getT(304+i); if(t)semi4.push(t); else semi4.push('?');}
+  const fin2=[];  for(let i=0;i<2;i++){ const t=getT(309+i); if(t)fin2.push(t);  else fin2.push('?');}
+  const thirdPlace = getT(312)||'?';
+  const champion   = getT(313)||'?';
+
+  // Resultados reales (mismas columnas en realResults)
+  const rGetT = (col) => { const v=realResults[col]?.trim(); return isTeam(v)?v:null; };
+  const realOct16=[]; for(let i=0;i<16;i++) realOct16.push(rGetT(278+i)||'');
+  const realCto8=[];  for(let i=0;i<8;i++)  realCto8.push(rGetT(295+i)||'');
+  const realSemi4=[]; for(let i=0;i<4;i++)  realSemi4.push(rGetT(304+i)||'');
+  const realFin2=[];  for(let i=0;i<2;i++)  realFin2.push(rGetT(309+i)||'');
+  const realChamp = rGetT(313)||'';
+  const realThird = rGetT(312)||'';
+
+  // ── Asignar terceros a los 8 partidos con 3ros (Annex C simplificado) ──
+  // Los ter8 van en orden a los 8 slots con 3eros del bracket
+  const t3 = (i) => ter8[i]||'3ro*';
+
+  // ── 16 partidos oficiales (orden del bracket FIFA) ──────────────
+  // IMPORTANTE: el orden determina con qué partido de 8vos se alinea
+  // Cada 2 partidos de 16vos producen 1 ganador que va a un partido de 8vos
+  // oct16[0..1] → octPairs[0], oct16[2..3] → octPairs[1], etc.
   const matches16 = [
-    {m:'M73', a:cl2['A'], b:cl2['B'],  label:'2A vs 2B'},
-    {m:'M74', a:cl1['E'], b:t3(0),     label:'1E vs 3ro'},
-    {m:'M75', a:cl1['F'], b:cl2['C'],  label:'1F vs 2C'},
-    {m:'M76', a:cl1['C'], b:cl2['F'],  label:'1C vs 2F'},
-    {m:'M77', a:cl1['I'], b:t3(1),     label:'1I vs 3ro'},
-    {m:'M78', a:cl2['E'], b:cl2['I'],  label:'2E vs 2I'},
-    {m:'M79', a:cl1['A'], b:t3(2),     label:'1A vs 3ro'},
-    {m:'M80', a:cl1['L'], b:t3(3),     label:'1L vs 3ro'},
-    {m:'M81', a:cl1['D'], b:t3(4),     label:'1D vs 3ro'},
-    {m:'M82', a:cl1['G'], b:t3(5),     label:'1G vs 3ro'},
-    {m:'M83', a:cl2['K'], b:cl2['L'],  label:'2K vs 2L'},
-    {m:'M84', a:cl1['H'], b:cl2['J'],  label:'1H vs 2J'},
-    {m:'M85', a:cl1['B'], b:t3(6),     label:'1B vs 3ro'},
-    {m:'M86', a:cl1['J'], b:cl2['H'],  label:'1J vs 2H'},
-    {m:'M87', a:cl1['K'], b:t3(7),     label:'1K vs 3ro'},
-    {m:'M88', a:cl2['D'], b:cl2['G'],  label:'2D vs 2G'},
+    // Rama 1 → octavos[0]
+    {m:'M73', a:cl2['A'], b:cl2['B']},
+    {m:'M74', a:cl1['E'], b:t3(0)},
+    // Rama 2 → octavos[1]
+    {m:'M75', a:cl1['F'], b:cl2['C']},
+    {m:'M76', a:cl1['C'], b:cl2['F']},
+    // Rama 3 → octavos[2]
+    {m:'M77', a:cl1['I'], b:t3(1)},
+    {m:'M78', a:cl2['E'], b:cl2['I']},
+    // Rama 4 → octavos[3]
+    {m:'M79', a:cl1['A'], b:t3(2)},
+    {m:'M80', a:cl1['L'], b:t3(3)},
+    // Rama 5 → octavos[4]
+    {m:'M81', a:cl1['D'], b:t3(4)},
+    {m:'M82', a:cl1['G'], b:t3(5)},
+    // Rama 6 → octavos[5]
+    {m:'M83', a:cl2['K'], b:cl2['L']},
+    {m:'M84', a:cl1['H'], b:cl2['J']},
+    // Rama 7 → octavos[6]
+    {m:'M85', a:cl1['B'], b:t3(6)},
+    {m:'M86', a:cl1['J'], b:cl2['H']},
+    // Rama 8 → octavos[7]
+    {m:'M87', a:cl1['K'], b:t3(7)},
+    {m:'M88', a:cl2['D'], b:cl2['G']},
   ];
 
-  const bte=(v,rPool=[])=>{
-    const empty=!v||v==='?'||v==='3ro*';
-    const hit=rPool.length>0&&rPool.includes(v)&&!empty;
-    const miss=rPool.length>0&&!hit&&!empty;
-    const elim=!empty&&ELIMINADOS.has(v);
-    const clasif=!empty&&CLASIFICADOS_16.has(v);
-    return `<div style="padding:4px 7px;font-size:10px;border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;
-      ${empty?'color:var(--text3);font-style:italic':''}
-      ${hit?'color:var(--verde);font-weight:600':''}
-      ${miss&&!hit?'color:var(--rojo)':''}
-      ${elim&&!hit&&!miss?'color:var(--rojo);text-decoration:line-through;opacity:0.7':''}
-      ${clasif&&!hit&&!miss&&!elim?'color:var(--azul);font-weight:500':''}">
-      ${hit?'✓ ':elim&&!hit?'✗ ':''}${empty?v||'?':v}</div>`;
+  // Octavos: pares de los 16 ganadores (oct16 tiene los 16 ganadores de 16vos)
+  // oct16[0,1] juegan entre sí en octavos[0], etc.
+  const octPairs=[]; 
+  for(let i=0;i<oct16.length;i+=2) octPairs.push([oct16[i]||'?',oct16[i+1]||'?']);
+  const ctoPairs=[];
+  for(let i=0;i<cto8.length;i+=2) ctoPairs.push([cto8[i]||'?',cto8[i+1]||'?']);
+  const semiPairs=[[semi4[0]||'?',semi4[1]||'?'],[semi4[2]||'?',semi4[3]||'?']];
+
+  // ── Renderizadores ──────────────────────────────────────────────
+  const clr=(v,pool,isPend)=>{
+    if(!v||v==='?'||v==='3ro*') return 'color:var(--text3);font-style:italic';
+    if(pool.includes(v)) return 'color:var(--verde);font-weight:600';
+    if(pool.length>0 && !pool.includes(v)) return 'color:var(--rojo)';
+    if(ELIMINADOS.has(v)) return 'color:var(--rojo)';
+    if(CLASIFICADOS_16.has(v)) return 'color:var(--azul)';
+    return 'color:var(--text2)';
   };
-  const bme=(a,b,rPool=[])=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-bottom:4px">${bte(a,rPool)}${bte(b,rPool)}</div>`;
 
-  // ── ALINEAR 16VOS CON 8VOS ──────────────────────────────────────
-  // Los 8vos tienen los ganadores de los 16vos.
-  // Para alinear: cada par de 16vos produce un ganador que va a 8vos.
-  // Orden de matches16 ya sigue el bracket oficial.
-  // El bracket visual: 16vos (16 pares) → 8vos (8 pares) → 4tos → semis → final
-  
-  // Altura de cada partido: ~34px por equipo + 4px margin = 38px por partido
-  // Espaciado entre pares en 8vos: el centro de par [0,1] debe alinearse con centro de pares [0] y [1] de 16vos
-  
-  // Construir columna 16vos con separadores cada 2 partidos
-  const H = 38; // altura aproximada de un partido en px
-  const col16Html = `<div style="font-size:8px;color:var(--text3);padding:2px 4px 4px;font-style:italic">*3ro = mejor 3er lugar (tabla Annex C FIFA)</div>` +
-    matches16.map((m,i)=>{
-      const sep = (i>0 && i%2===0) ? `<div style="height:4px"></div>` : '';
-      return sep + `<div style="font-size:8px;color:var(--text3);padding:0 2px;line-height:1.2">${m.m}</div>` + bme(m.a,m.b,realOct);
-    }).join('');
+  const teamDiv=(v,pool=[],pendiente=false,height='30px')=>{
+    const c=clr(v,pool,pendiente);
+    const lbl=!v||v==='?'||v==='3ro*'?(v||'?'):v;
+    return `<div style="padding:3px 6px;font-size:10px;border-bottom:1px solid var(--border);height:${height};display:flex;align-items:center;${c};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lbl}</div>`;
+  };
 
-  // Construir columna 8vos alineada: cada par de 8vos necesita margin-top para centrar
-  // con sus 2 pares de origen en 16vos
-  // Primer par de 8vos: center of matches16[0,1] = (H*2)/2 = H
-  // Primer par aparece en 8vos con margin-top = H - H/2 = H/2
-  const oct8Html = octPairs.map((([a,b],i)=>{
-    const marginTop = i===0 ? Math.round(H*1.5)+'px' : Math.round(H*2+4)+'px';
-    return `<div style="margin-top:${i===0?Math.round(H*1.5):Math.round(H*2+4)}px">${bme(a,b,realOct)}</div>`;
-  })).join('');
-  
-  // Cuartos: cada par necesita centrarse respecto a sus 2 de 8vos
-  const cto4Html = ctoPairs.length>0 ? ctoPairs.map(([a,b],i)=>{
-    return `<div style="margin-top:${i===0?Math.round(H*3.5+4):Math.round(H*4+8)}px">${bme(a,b,realCto)}</div>`;
-  }).join('') : '<div style="color:var(--text3);font-size:11px;padding:8px">-</div>';
+  const matchBox=(a,b,pool=[],pendiente=false)=>
+    `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden">
+      ${teamDiv(a,pool,pendiente)}${teamDiv(b,pool,pendiente)}
+    </div>`;
 
-  // Semis
-  const semiHtml = `<div style="margin-top:${Math.round(H*7+8)}px">${bme(semiPairs[0][0],semiPairs[0][1],realSemi)}</div>` +
-    `<div style="margin-top:${Math.round(H*8+4)}px">${bme(semiPairs[1][0],semiPairs[1][1],realSemi)}</div>`;
+  // ── Layout con CSS flex y altura fija ───────────────────────────
+  // Cada partido ocupa H px de alto (2 equipos de 30px + bordes ~64px)
+  // Entre pares de una misma rama: gap de 4px
+  // Entre ramas diferentes: gap = H (para centrar con 8vos)
+  const H = 68; // altura total de un partido (2x30 + bordes/padding)
+  const GAP = 4; // gap entre los 2 partidos de la misma rama
 
-  // Final — solo mostrar si hay resultado real, si no mostrar como pendiente
-  const finalJugada = realFin.length > 0 && realFin.some(t=>t&&t!=='?');
-  const finHtml = `<div style="margin-top:${Math.round(H*15+12)}px">${
-    finalJugada 
-      ? bme(f1,f2,realFin)
-      : `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-bottom:4px">
-          ${bte(f1,[])}
-          ${bte(f2,[])}
-         </div>`
-  }</div>`;
+  // Columna 16vos: 16 partidos en 8 ramas de 2
+  const col16 = () => {
+    let out = '<div style="font-size:8px;color:var(--text3);padding:2px 4px 3px;font-style:italic">*3ro depende del resultado de grupos</div>';
+    for(let rama=0;rama<8;rama++){
+      const m1=matches16[rama*2], m2=matches16[rama*2+1];
+      // El ganador de m1 y m2 avanzan a octPairs[rama]
+      const pool1 = [oct16[rama*2]].filter(Boolean);
+      const pool2 = [oct16[rama*2+1]].filter(Boolean);
+      if(rama>0) out+=`<div style="height:${GAP}px"></div>`;
+      out+=`<div style="font-size:8px;color:var(--text3);padding:0 2px">${m1.m}</div>`;
+      out+=matchBox(m1.a, m1.b, pool1);
+      out+=`<div style="font-size:8px;color:var(--text3);padding:0 2px;margin-top:1px">${m2.m}</div>`;
+      out+=matchBox(m2.a, m2.b, pool2);
+    }
+    return out;
+  };
 
-  // Campeón y 3er lugar — pendiente si no hay resultado real
-  const champJugado = realChamp && realChamp !== '';
-  const tercerJugado = realAll.slice(-2)[0] && realAll.slice(-2)[0] !== '?';
-  const campHtml = `<div style="margin-top:${Math.round(H*14+8)}px">
-    <div style="text-align:center;padding:8px 6px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:8px;margin-bottom:4px">
-      <div style="font-size:9px;color:var(--text3)">🏆 CAMPEÓN</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--dorado);margin-top:2px">${champion==='?'?'⏳ TBD':champion}</div>
-      ${champJugado?`<div style="font-size:9px;color:${realChamp===champion?'var(--verde)':'var(--rojo)'};margin-top:2px">${realChamp===champion?'⭐ ¡Correcto!':'✗ Real: '+realChamp}</div>`:''}
-    </div>
-    <div style="height:${Math.round(H*2)}px"></div>
-    <div style="text-align:center;padding:6px;background:rgba(205,127,50,.06);border:1px solid rgba(205,127,50,.25);border-radius:8px;margin-top:4px">
-      <div style="font-size:9px;color:var(--text3)">🥉 3ER LUGAR</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:#CD7F32;margin-top:2px">${thirdPlace==='?'?'⏳ TBD':thirdPlace}</div>
-    </div>
+  // Columna octavos: 8 partidos, cada uno centrado entre sus 2 de 16vos
+  // Centro de los 2 partidos de 16vos = rama*2*(H+label) + H
+  // margin-top del primer octavo = H + label (~12px)
+  const LABEL_H = 14; // altura label "M73" etc
+  const col8 = () => {
+    let out = '';
+    for(let i=0;i<octPairs.length;i++){
+      const [a,b]=octPairs[i];
+      const pool=[realCto8[i*2]||''].filter(Boolean);
+      // Centrar con los 2 partidos de 16vos de esta rama
+      const blockH = LABEL_H + H + LABEL_H + H + GAP; // altura de 2 partidos con labels
+      const mt = i===0 ? Math.round((blockH - H)/2) : GAP;
+      out += `<div style="margin-top:${i===0?mt:GAP}px">${matchBox(a,b,pool)}</div>`;
+    }
+    return out;
+  };
+
+  // Columna cuartos: 4 partidos
+  const col4 = () => {
+    if(!ctoPairs.length) return '<div style="color:var(--text3);font-size:11px;padding-top:40px">—</div>';
+    let out='';
+    for(let i=0;i<ctoPairs.length;i++){
+      const [a,b]=ctoPairs[i];
+      const pool=[realSemi4[i*2]||''].filter(Boolean);
+      const blockH = (LABEL_H+H)*2+GAP; // 2 partidos de octavos
+      const mt = i===0 ? Math.round(blockH/2-H/2+LABEL_H+H/2) : GAP*2;
+      out+=`<div style="margin-top:${i===0?mt:GAP*3}px">${matchBox(a,b,pool)}</div>`;
+    }
+    return out;
+  };
+
+  // Columna semis: 2 partidos
+  const col2 = () => {
+    const pool0=[realFin2[0]||''].filter(Boolean);
+    const pool1=[realFin2[1]||''].filter(Boolean);
+    const blockH = (H+GAP)*2*2; // 4 partidos de cuartos
+    const mt = Math.round(blockH/4);
+    return `<div style="margin-top:${mt}px">${matchBox(semiPairs[0][0],semiPairs[0][1],pool0)}</div>`+
+           `<div style="margin-top:${Math.round(blockH/2)}px">${matchBox(semiPairs[1][0],semiPairs[1][1],pool1)}</div>`;
+  };
+
+  // Final: pendiente si no hay resultado real
+  const finalJugada = realFin2.some(v=>v&&v!=='?');
+  const col1 = () => {
+    const mt = Math.round(((LABEL_H+H)*2+GAP)*1.5);
+    const box = finalJugada
+      ? matchBox(fin2[0]||'?', fin2[1]||'?', [realChamp].filter(Boolean))
+      : `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden">${teamDiv(fin2[0]||'?',[],true)}${teamDiv(fin2[1]||'?',[],true)}</div>`;
+    return `<div style="margin-top:${mt}px">${box}</div>`;
+  };
+
+  // Campeón + 3er lugar
+  const colChamp = () => {
+    const mt = Math.round(((LABEL_H+H)*2+GAP)*1.5 + H/2 - 20);
+    return `<div style="margin-top:${mt}px">
+      <div style="text-align:center;padding:8px 4px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:8px;margin-bottom:4px">
+        <div style="font-size:9px;color:var(--text3)">🏆 CAMPEÓN</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--dorado);margin-top:2px">${champion==='?'?'⏳':champion}</div>
+        ${realChamp&&realChamp!=='?'?`<div style="font-size:9px;color:${realChamp===champion?'var(--verde)':'var(--rojo)'}">${realChamp===champion?'⭐ ¡Correcto!':'✗ Real: '+realChamp}</div>`:''}
+      </div>
+      <div style="margin-top:${H}px;text-align:center;padding:6px 4px;background:rgba(205,127,50,.06);border:1px solid rgba(205,127,50,.25);border-radius:8px">
+        <div style="font-size:9px;color:var(--text3)">🥉 3ER LUGAR</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:#CD7F32;margin-top:2px">${thirdPlace==='?'?'⏳':thirdPlace}</div>
+        ${realThird&&realThird!=='?'?`<div style="font-size:9px;color:${realThird===thirdPlace?'var(--verde)':'var(--rojo)'}">${realThird===thirdPlace?'✓':'✗ Real: '+realThird}</div>`:''}
+      </div>
+    </div>`;
+  };
+
+  const col=(title,content,mw)=>`<div style="min-width:${mw};padding:0 3px;flex-shrink:0">
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);text-align:center;padding:3px 0;border-bottom:1px solid var(--border);margin-bottom:4px">${title}</div>
+    ${content}
   </div>`;
 
   return `<div style="overflow-x:auto;padding:8px 0">
-  <div style="display:flex;gap:1px;min-width:950px;align-items:flex-start">
-    ${br('16avos',col16Html,'135px')}
-    ${br('Octavos',oct8Html,'120px')}
-    ${br('Cuartos',cto4Html,'115px')}
-    ${br('Semis',semiHtml,'115px')}
-    ${br('Final',finHtml,'110px')}
-    ${br('🏆 / 🥉',campHtml,'105px')}
+  <div style="display:flex;gap:2px;min-width:980px;align-items:flex-start">
+    ${col('16avos',col16(),'135px')}
+    ${col('Octavos (8)',col8(),'120px')}
+    ${col('Cuartos (4)',col4(),'115px')}
+    ${col('Semis (2)',col2(),'115px')}
+    ${col('Final',col1(),'110px')}
+    ${col('🏆/🥉',colChamp(),'105px')}
   </div></div>`;
 }
 
