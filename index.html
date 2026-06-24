@@ -432,6 +432,7 @@ async function loadAll() {
     }
   } catch(e) { console.warn('No se cargaron resultados reales:', e.message); }
 
+  document.getElementById('search-t').value=''; // limpiar búsqueda al recargar
   renderTabla(players);
   updateStats();
   const now=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
@@ -465,14 +466,14 @@ function renderTabla(pls) {
   const maxRank=Math.max(...pls.map(p=>p.rank));
   document.getElementById('tabla-cont').innerHTML=`<table>
     <thead><tr>
-      <th onclick="sortByCol('rank')">Pos</th>
-      <th onclick="sortByCol('nombre')">Nombre</th>
+      <th onclick="sortByCol('rank')" style="position:sticky;left:0;background:var(--bg2);z-index:2">Pos</th>
+      <th onclick="sortByCol('nombre')" style="position:sticky;left:36px;background:var(--bg2);z-index:2">Nombre</th>
       <th onclick="sortByCol('tot')" class="${sortDir.col==='tot'?'sorted':''}">Total</th>
       <th onclick="sortByCol('dif')">Dif</th>
+      <th onclick="sortByCol('r3')" class="hide-mob">R3</th>
       <th onclick="sortByCol('r2')">R2</th>
       <th onclick="sortByCol('r1')" class="hide-mob">R1</th>
-      <th onclick="sortByCol('r3')" class="hide-mob">R3</th>
-      <th onclick="sortByCol('gpos')">Grupos</th>
+      <th onclick="sortByCol('gpos')" class="hide-mob">Grupos</th>
       <th onclick="sortByCol('fg')">Fase G.</th>
     </tr></thead>
     <tbody>
@@ -482,13 +483,13 @@ function renderTabla(pls) {
       const rc=p.rank===1?'r1c':p.rank===2?'r2c':p.rank===3?'r3c':isLast?'rlc':'';
       const difStr=p.dif===0?'LÍDER':p.dif<0?String(p.dif):'+'+p.dif;
       return `<tr class="${top3?'ztop':isLast?'zlast':''}" onclick="quickMQ('${p.nombre.replace(/'/g,"\\'")}')">
-        <td><span class="rank ${rc}">${medal||('#'+p.rank)}</span></td>
-        <td style="font-weight:500;font-size:12px">${p.nombre}</td>
+        <td style="position:sticky;left:0;background:${top3?'rgba(255,215,0,0.04)':isLast?'rgba(229,57,53,0.04)':'var(--bg2)'};z-index:1"><span class="rank ${rc}">${medal||('#'+p.rank)}</span></td>
+        <td style="font-weight:500;font-size:12px;position:sticky;left:36px;background:${top3?'rgba(255,215,0,0.04)':isLast?'rgba(229,57,53,0.04)':'var(--bg2)'};z-index:1">${p.nombre}</td>
         <td class="pts">${p.tot}</td>
         <td class="dif ${p.dif===0?'zero':''}">${difStr}</td>
+        <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px">${p.r3}</td>
         <td style="font-family:JetBrains Mono,monospace;font-size:11px">${p.r2}</td>
         <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px">${p.r1}</td>
-        <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px">${p.r3}</td>
         <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--azul)">${p.gpos}</td>
         <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--verde)">${p.fg}</td>
       </tr>`;
@@ -672,14 +673,24 @@ function buildMatchCards(nombre){
       const pts2Label = realC2 ? (realC2===n2 ? '<span style="color:#C0C0C0;font-weight:700;font-size:10px;margin-left:4px">+3pts ✓</span>' : '<span style="color:var(--rojo);font-size:10px;margin-left:4px">✗ Real: '+realC2+'</span>') : (n2!=='?'?'<span style="color:var(--text3);font-size:9px;margin-left:4px">⏳</span>':'');
       // badge: solo cuando hay resultado real
       const badge = ptsBono>=4?'<span class="badge b-exact" style="font-size:9px">⭐+4</span>':ptsBono>0?'<span class="badge b-result" style="font-size:9px">✓+'+ptsBono+'</span>':realC1&&realC1!==n1?'<span class="badge b-miss" style="font-size:9px">✗</span>':!realC1&&n1!=='?'?'<span class="badge b-pend" style="font-size:9px">⏳</span>':'';
+      // 3er lugar: buscar si hay un equipo de este grupo en ter8 (terceros pronosticados)
+      const teamsInGrp = GRUPOS_INFO[letra]?.teams||[];
+      const ter3 = ter8.find(t=>t&&teamsInGrp.some(eq=>eq===t||eq.toLowerCase()===(t||'').toLowerCase()));
+      const ter3Html = ter3
+        ? `<div style="padding:4px 10px;border-top:1px dashed var(--border);font-size:10px;display:flex;align-items:center;gap:4px">
+            <span style="color:#CD7F32">🥉</span><span style="color:var(--text2)">${ter3}</span>
+            <span style="font-size:9px;color:var(--text3);margin-left:auto">+2pts</span>
+           </div>`
+        : '';
       return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;overflow:hidden">
         <div style="padding:4px 10px;background:var(--bg4);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--dorado);display:flex;justify-content:space-between"><span>Grupo ${letra}</span>${badge}</div>
         <div style="padding:5px 10px;border-bottom:1px solid var(--border);font-size:11px;display:flex;align-items:center;flex-wrap:wrap;gap:2px">
           <span style="color:var(--dorado)">🥇</span>&nbsp;<span>${n1}</span>${pts1Label}
         </div>
-        <div style="padding:5px 10px;font-size:11px;display:flex;align-items:center;flex-wrap:wrap;gap:2px">
+        <div style="padding:5px 10px;${ter3?'border-bottom:1px dashed var(--border);':''}font-size:11px;display:flex;align-items:center;flex-wrap:wrap;gap:2px">
           <span style="color:#C0C0C0">🥈</span>&nbsp;<span>${n2}</span>${pts2Label}
         </div>
+        ${ter3Html}
       </div>`;
     }).join('')}
     </div></div>`;
@@ -816,27 +827,76 @@ function buildBracket(nombre){
   };
   const bme=(a,b,rPool=[])=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-bottom:4px">${bte(a,rPool)}${bte(b,rPool)}</div>`;
 
-  const col16vos=`<div style="font-size:8px;color:var(--text3);padding:2px 4px;margin-bottom:3px">*3ro = mejor 3er lugar (depende del grupo)</div>
-  <div>${matches16.map(m=>`<div style="font-size:8px;color:var(--text3);padding:0 4px;margin-top:2px">${m.m}</div>${bme(m.a,m.b,realOct)}`).join('')}</div>`;
+  // ── ALINEAR 16VOS CON 8VOS ──────────────────────────────────────
+  // Los 8vos tienen los ganadores de los 16vos.
+  // Para alinear: cada par de 16vos produce un ganador que va a 8vos.
+  // Orden de matches16 ya sigue el bracket oficial.
+  // El bracket visual: 16vos (16 pares) → 8vos (8 pares) → 4tos → semis → final
+  
+  // Altura de cada partido: ~34px por equipo + 4px margin = 38px por partido
+  // Espaciado entre pares en 8vos: el centro de par [0,1] debe alinearse con centro de pares [0] y [1] de 16vos
+  
+  // Construir columna 16vos con separadores cada 2 partidos
+  const H = 38; // altura aproximada de un partido en px
+  const col16Html = `<div style="font-size:8px;color:var(--text3);padding:2px 4px 4px;font-style:italic">*3ro = mejor 3er lugar (tabla Annex C FIFA)</div>` +
+    matches16.map((m,i)=>{
+      const sep = (i>0 && i%2===0) ? `<div style="height:4px"></div>` : '';
+      return sep + `<div style="font-size:8px;color:var(--text3);padding:0 2px;line-height:1.2">${m.m}</div>` + bme(m.a,m.b,realOct);
+    }).join('');
+
+  // Construir columna 8vos alineada: cada par de 8vos necesita margin-top para centrar
+  // con sus 2 pares de origen en 16vos
+  // Primer par de 8vos: center of matches16[0,1] = (H*2)/2 = H
+  // Primer par aparece en 8vos con margin-top = H - H/2 = H/2
+  const oct8Html = octPairs.map((([a,b],i)=>{
+    const marginTop = i===0 ? Math.round(H*1.5)+'px' : Math.round(H*2+4)+'px';
+    return `<div style="margin-top:${i===0?Math.round(H*1.5):Math.round(H*2+4)}px">${bme(a,b,realOct)}</div>`;
+  })).join('');
+  
+  // Cuartos: cada par necesita centrarse respecto a sus 2 de 8vos
+  const cto4Html = ctoPairs.length>0 ? ctoPairs.map(([a,b],i)=>{
+    return `<div style="margin-top:${i===0?Math.round(H*3.5+4):Math.round(H*4+8)}px">${bme(a,b,realCto)}</div>`;
+  }).join('') : '<div style="color:var(--text3);font-size:11px;padding:8px">-</div>';
+
+  // Semis
+  const semiHtml = `<div style="margin-top:${Math.round(H*7+8)}px">${bme(semiPairs[0][0],semiPairs[0][1],realSemi)}</div>` +
+    `<div style="margin-top:${Math.round(H*8+4)}px">${bme(semiPairs[1][0],semiPairs[1][1],realSemi)}</div>`;
+
+  // Final — solo mostrar si hay resultado real, si no mostrar como pendiente
+  const finalJugada = realFin.length > 0 && realFin.some(t=>t&&t!=='?');
+  const finHtml = `<div style="margin-top:${Math.round(H*15+12)}px">${
+    finalJugada 
+      ? bme(f1,f2,realFin)
+      : `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-bottom:4px">
+          ${bte(f1,[])}
+          ${bte(f2,[])}
+         </div>`
+  }</div>`;
+
+  // Campeón y 3er lugar — pendiente si no hay resultado real
+  const champJugado = realChamp && realChamp !== '';
+  const tercerJugado = realAll.slice(-2)[0] && realAll.slice(-2)[0] !== '?';
+  const campHtml = `<div style="margin-top:${Math.round(H*14+8)}px">
+    <div style="text-align:center;padding:8px 6px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:8px;margin-bottom:4px">
+      <div style="font-size:9px;color:var(--text3)">🏆 CAMPEÓN</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--dorado);margin-top:2px">${champion==='?'?'⏳ TBD':champion}</div>
+      ${champJugado?`<div style="font-size:9px;color:${realChamp===champion?'var(--verde)':'var(--rojo)'};margin-top:2px">${realChamp===champion?'⭐ ¡Correcto!':'✗ Real: '+realChamp}</div>`:''}
+    </div>
+    <div style="height:${Math.round(H*2)}px"></div>
+    <div style="text-align:center;padding:6px;background:rgba(205,127,50,.06);border:1px solid rgba(205,127,50,.25);border-radius:8px;margin-top:4px">
+      <div style="font-size:9px;color:var(--text3)">🥉 3ER LUGAR</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:#CD7F32;margin-top:2px">${thirdPlace==='?'?'⏳ TBD':thirdPlace}</div>
+    </div>
+  </div>`;
 
   return `<div style="overflow-x:auto;padding:8px 0">
-  <div style="display:flex;gap:2px;min-width:900px;align-items:flex-start">
-    ${br('16avos (32→16)',col16vos,'140px')}
-    ${br('Octavos (8)',octPairs.map(([a,b])=>bme(a,b,realOct)).join(''),'120px')}
-    ${br('Cuartos (4)',ctoPairs.length>0?ctoPairs.map(([a,b])=>bme(a,b,realCto)).join(''):'<div style="color:var(--text3);font-size:11px;padding:4px">-</div>','115px')}
-    ${br('Semis (2)',`<div style="margin-top:10px">${bme(semiPairs[0][0],semiPairs[0][1],realSemi)}<div style="height:20px"></div>${bme(semiPairs[1][0],semiPairs[1][1],realSemi)}</div>`,'115px')}
-    ${br('Final',`<div style="margin-top:55px">${bme(f1,f2,realFin)}</div>`,'110px')}
-    ${br('🏆',`<div style="margin-top:50px">
-      <div style="text-align:center;padding:8px 6px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:8px;margin-bottom:6px">
-        <div style="font-size:9px;color:var(--text3)">CAMPEÓN</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--dorado);margin-top:2px">${champion==='?'?'¿?':champion}</div>
-        ${realChamp?`<div style="font-size:9px;color:${realChamp===champion?'var(--verde)':'var(--rojo)'};margin-top:2px">${realChamp===champion?'⭐ ¡Correcto!':'✗ '+realChamp}</div>`:''}
-      </div>
-      <div style="text-align:center;padding:6px;background:rgba(205,127,50,.08);border:1px solid rgba(205,127,50,.3);border-radius:8px">
-        <div style="font-size:9px;color:var(--text3)">3ER LUGAR</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:#CD7F32;margin-top:2px">${thirdPlace==='?'?'¿?':thirdPlace}</div>
-      </div>
-    </div>`,'100px')}
+  <div style="display:flex;gap:1px;min-width:950px;align-items:flex-start">
+    ${br('16avos',col16Html,'135px')}
+    ${br('Octavos',oct8Html,'120px')}
+    ${br('Cuartos',cto4Html,'115px')}
+    ${br('Semis',semiHtml,'115px')}
+    ${br('Final',finHtml,'110px')}
+    ${br('🏆 / 🥉',campHtml,'105px')}
   </div></div>`;
 }
 
