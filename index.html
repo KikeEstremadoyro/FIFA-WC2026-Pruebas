@@ -585,29 +585,27 @@ function showPlayer(nombre){
     <div class="pstats">
       <div class="pstat">
         <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--verde);line-height:1">${p.tot} pts</div>
-        <div style="font-size:12px;font-weight:600;color:var(--verde);margin-top:4px">totales</div>
+        <div style="font-size:14px;font-weight:700;color:var(--verde);margin-top:5px">totales</div>
       </div>
       <div class="pstat">
         <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--text);line-height:1">${ptsMarcReal} pts</div>
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-top:4px">${exactosReal} exactos</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px">marcadores</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-top:5px">${exactosReal} marcadores</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-top:2px">exactos</div>
       </div>
       <div class="pstat">
         <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--text);line-height:1">${resultadosReal} pts</div>
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-top:4px">resultados</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px">correctos</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-top:5px">resultados</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-top:2px">correctos</div>
       </div>
       <div class="pstat">
         <div style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--azul);line-height:1">${p.gpos} pts</div>
-        <div style="font-size:12px;font-weight:600;color:var(--azul);margin-top:4px">grupos</div>
+        <div style="font-size:14px;font-weight:700;color:var(--azul);margin-top:5px">grupos</div>
       </div>
       <div class="pstat">
         <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:${p.dif===0?'var(--dorado)':'var(--text)'};line-height:1">${difLabel}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:4px">vs líder</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text2);margin-top:5px">vs líder</div>
       </div>
-    </div>
-  </div>
-  ${mq.html}
+    </div>  ${mq.html}
   <div class="card" style="margin-top:16px">
     <div class="card-hdr"><div class="card-title">🏆 Bracket Eliminatorio</div><div style="font-size:11px;color:var(--text3)">Pronósticos de ${p.nombre.split(' ')[0]}</div></div>
     <div style="padding:16px">${bracket}</div>
@@ -1478,6 +1476,21 @@ TODOS: ${players.map(p=>`${p.nombre}:${p.tot}:#${p.rank}`).join(',')}`;
 }
 
 // Respuestas predeterminadas sin API
+function getPlayerMatchData(nombre, grupoLetra, partidoNum){
+  // Retorna el pronóstico de un jugador para un partido específico
+  let row=null;
+  for(const r of quinielaRows){if(r[4]&&r[4].trim()===nombre){row=r;break;}}
+  if(!row) return null;
+  const gLetras=['A','B','C','D','E','F','G','H','I','J','K','L'];
+  const gi = grupoLetra ? gLetras.indexOf(grupoLetra.toUpperCase()) : -1;
+  if(gi<0) return null;
+  const col = 17 + gi*18 + (partidoNum-1)*3;
+  const s1=row[col]?.trim(), s2=row[col+1]?.trim(), pts=parseInt(row[col+2])||0;
+  if(!s1&&!s2) return null;
+  const matchName = GRUPOS_INFO[grupoLetra.toUpperCase()]?.matches[partidoNum-1]||'';
+  return {s1,s2,pts,matchName,score:`${s1}-${s2}`};
+}
+
 function smartAnswer(msg){
   if(!players.length) return 'Olá! Todavía estoy cargando los datos. ¡Intenta en un momento minha gente!';
   const s=[...players].sort((a,b)=>b.tot-a.tot);
@@ -1517,7 +1530,26 @@ function smartAnswer(msg){
   if(q.includes('diferencia')||q.includes('ventaja'))
     return `📏 Líder aventaja ${leader.tot-second.tot} pts al 2do. Del 1ro al último: <strong>${leader.tot-last.tot} pts</strong> de diferencia.`;
   if(q.includes('curioso')||q.includes('dato'))
-    return `🧩 ${topEx.exactosR} es el máximo de exactos (${topEx.nombre.split(' ')[0]}). Solo ${enrichedS.filter(p=>p.exactosR>0).length} de ${players.length} acertaron alguno. Promedio: ${Math.round(enrichedS.reduce((s,p)=>s+p.exactosR,0)/enrichedS.length*10)/10}. ¡Olha só!`;
+    return `🧩 ${topEx.exactosR} es el máximo de exactos (${topEx.nombre.split(' ')[0]}). Solo ${enrichedS.filter(p=>p.exactosR>0).length} de ${players.length} han acertado alguno. ¡Olha só!`;
+  
+  // Marcadores específicos de un jugador en un partido
+  if(q.includes('marcador')||q.includes('puso')||q.includes('pronóstico')||q.includes('pronostico')||q.includes('partido')||q.includes('cuánto')||q.includes('cuanto')){
+    const grupoM=q.match(/grupo\s*([a-l])/i);
+    const partidoM=q.match(/p(\d)|partido\s*(\d)/i);
+    const grupoL=grupoM?grupoM[1].toUpperCase():null;
+    const partidoN=partidoM?parseInt(partidoM[1]||partidoM[2]):null;
+    const jugador=players.find(p=>q.includes(p.nombre.toLowerCase())||q.split(' ').some(w=>w.length>3&&p.nombre.toLowerCase().includes(w)));
+    if(jugador&&grupoL&&partidoN){
+      const md=getPlayerMatchData(jugador.nombre,grupoL,partidoN);
+      if(md) return `📋 <strong>${jugador.nombre.split(' ')[0]}</strong> puso <strong>${md.score}</strong> en ${md.matchName} (G-${grupoL} P${partidoN}). ${md.pts===4?'⭐ ¡Exacto!':md.pts>0?'✓ Acertó el resultado.':md.s1?'✗ Falló.':'⏳ Pendiente.'}`;
+      return `No encontré ese partido de ${jugador.nombre.split(' ')[0]}.`;
+    }
+    if(jugador&&!grupoL)
+      return `Para ver el marcador de <strong>${jugador.nombre.split(' ')[0]}</strong>, dime el grupo y partido. Ejemplo: "¿qué puso en Grupo A P1?"`;
+    if(!jugador&&grupoL&&partidoN)
+      return `Dime el nombre del quinielero y te digo su pronóstico del Grupo ${grupoL} P${partidoN}. ¡Minha gente, hay ${players.length} quinielas!`;
+  }
+
   return `Olá minha gente! 👋<br>🥇 Líder: <strong>${leader.nombre}</strong> (${leader.tot} pts)<br>📊 Promedio: <strong>${avg} pts</strong> · ${players.length} quinieleiros<br>🎯 Más exactos: <strong>${topEx.nombre.split(' ')[0]}</strong> (${topEx.exactosR})<br>🏅 Más pts grupos: <strong>${topGpos.nombre.split(' ')[0]}</strong> (${topGpos.gpos})<br><br>Pregúntame por nombre, podio, exactos, grupos, diferencias... ¡o agrega tu API key para respuestas con IA completa! 🤖`;
 }
 
@@ -1563,9 +1595,28 @@ function loadHistoryComments(todayKey){
 
 async function genComment(){
   if(!players.length){
-    // Reintentar en 2 segundos si players aún no cargó
     setTimeout(genComment, 2000);
     return;
+  }
+  // Si ya hay crónica del día de hoy, mostrarla sin regenerar
+  const dateKey=new Date().toISOString().slice(0,10);
+  const store=JSON.parse(localStorage.getItem('cronica_v2')||'{}');
+  if(store[dateKey]){
+    const tc=store[dateKey];
+    if(Array.isArray(tc)&&tc.length>=3){
+      const today=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+      const elDate=document.getElementById('comment-date-0');
+      const elHl=document.getElementById('comment-hl-0');
+      const elBody=document.getElementById('comment-b-0');
+      const elExtra=document.getElementById('comment-extra');
+      const elHist=document.getElementById('comment-history');
+      if(elDate) elDate.textContent=tc[0].date||today;
+      if(elHl)   elHl.textContent=tc[0].headline;
+      if(elBody) elBody.innerHTML=tc[0].body;
+      if(elExtra) elExtra.innerHTML=tc.slice(1).map(c=>comentCard(c.date,c.tagClass,c.tag,c.headline,c.body)).join('');
+      if(elHist)  elHist.innerHTML=loadHistoryComments(dateKey);
+      return;
+    }
   }
   const s=[...players].sort((a,b)=>b.tot-a.tot);
   const leader=s[0],second=s[1],third=s[2],last=s[s.length-1];
@@ -1575,7 +1626,7 @@ async function genComment(){
   const topEx=[...enrichedG].sort((a,b)=>b.exactosR-a.exactosR)[0];
   const topGpos=[...players].sort((a,b)=>b.gpos-a.gpos)[0];
   const today=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
-  const dateKey=new Date().toISOString().slice(0,10); // YYYY-MM-DD
+  // dateKey already declared above
   const zeroGpos=players.filter(p=>p.gpos===0);
 
   // Datos de movers (comparar con snapshot previo si existe)
