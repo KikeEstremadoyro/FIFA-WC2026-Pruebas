@@ -1744,7 +1744,7 @@ async function genComment(){
   const curiosFacts=[
     enrichedG.filter(p=>p.exactosR>0).length+' de '+players.length+' quinieleiros acertaron al menos un marcador exacto. El rey: '+topEx.nombre.split(' ')[0]+' con '+(topEx.exactosR||topEx.exactos)+'. ¡Nossa!',
     topGpos.nombre.split(' ')[0]+' lleva '+topGpos.gpos+' pts de lugares de grupo — el mejor clasificando equipos. '+(zeroGpos.length>0?zeroGpos.length+' quinieleiros sin pts de grupos todavía.':'¡Todos clasificaron bien!'),
-    (()=>{const zE=enrichedS.filter(p=>p.exactosR===0);return zE.length>0?'<strong>'+zE.length+' quinieleiros</strong> todavía sin ningún marcador exacto. Entre ellos: '+zE.slice(0,2).map(p=>p.nombre.split(' ')[0]).join(' y ')+'. ¡Eita, así está el fuego!':'¡Olha só! Ya todos acertaron al menos un marcador exacto. ¡Que nivel!';})(),
+    (()=>{const zE=enrichedG.filter(p=>p.exactosR===0);return zE.length>0?'<strong>'+zE.length+' quinieleiros</strong> todavía sin ningún marcador exacto. Entre ellos: '+zE.slice(0,2).map(p=>p.nombre.split(' ')[0]).join(' y ')+'. ¡Eita, así está el fuego!':'¡Olha só! Ya todos acertaron al menos un marcador exacto. ¡Que nivel!';})(),
     'El último es <strong>'+last.nombre.split(' ')[0]+'</strong> con '+last.tot+' pts, a '+(leader.tot-last.tot)+' del líder. En eliminatorias todo puede cambiar minha gente — ¡caramba!',
   ];
   const hl3='🧩 Curiosidad del día';
@@ -2085,7 +2085,7 @@ function buildTennisDraw(nombre){
     // Color de 16vos: ¿el partido ya se jugó? oct[p16]!==''
     const p16Played=oct[p16]!=='';
     const adv16=new Set([oct[p16]].filter(x=>x));
-    const c16=tcG(v,adv16,p16Played);
+    const c16=tc(v,adv16,p16Played);
 
     // Separador visual entre ramas (cada 4 filas = cada par de partidos de 16vos)
     const isLastInPair=(p16%2===1 && eq===1);
