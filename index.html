@@ -305,14 +305,24 @@ const csvUrl = gid => `${BASE}/pub?gid=${gid}&single=true&output=csv`;
 // Equipos eliminados/clasificados — se calculan dinámicamente desde TablaControl
 // pero se inicializan con los conocidos actualmente
 let ELIMINADOS = new Set([
-  // Eliminados en fase de grupos
-  'Haití','Haiti','Turquía','Turquia','Túnez','Tunez','Jordania','Panamá','Panama',
-  'Chequia','Czech Republic','Sudáfrica','South Africa','Korea','Corea del Sur',
-  'Escocia','Scotland','Paraguay','Curazao','Costa de Marfil','Nueva Zelanda',
-  'Suecia','Sweden','Egipto','Egypt','Irán','Iran','Cabo Verde','Cape Verde',
-  'Arabia Saudita','Saudi Arabia','Irak','Iraq','Noruega','Norway','Algeria','Algeria',
-  'Austria','Jordania','RD Congo','Uzbekiztán','Uzbekistan','Ghana','Panamá',
-  'Croacia','Croatia','Uruguay','Bosnia','Ecuador','Senegal'
+  // Solo los 17 equipos eliminados confirmados al 28-jun-26
+  'Haití','Haiti',
+  'Túnez','Tunez',
+  'Uzbekiztán','Uzbekistan',
+  'Jordania',
+  'Panamá','Panama',
+  'Catar','Qatar',
+  'Curazao',
+  'Nueva Zelanda','New Zealand',
+  'Chequia','Czech Republic',
+  'Arabia Saudita','Saudi Arabia',
+  'Uruguay',
+  'Escocia','Scotland',
+  'Turquía','Turkey',
+  'Korea','Corea del Sur','South Korea',
+  'Irán','Iran',
+  'Sudáfrica','South Africa',
+  'Irak','Iraq'
 ]);
 let CLASIFICADOS_16 = new Set([
   // Clasificados a 16avos (los 32 que pasaron de grupos, equivalente a los 16avos)
@@ -2129,7 +2139,9 @@ function buildTennisDraw(nombre){
     } else {
       c16='var(--rojo)'; // perdió en realidad → rojo
     }
-    const isAdv16=(p16Played && v===realWinner16);
+    const isAdv16=(p16Played && v===realWinner16); // ganó REALMENTE
+    // Badge: solo si ganó realmente Y el quinielero lo puso en oct[] (siguiente ronda)
+    const predInOct16 = oct[p16]===v; // el quinielero predijo que v pasa a octavos
 
     // Separador visual entre ramas (cada 4 filas = cada par de partidos de 16vos)
     const isLastInPair=(p16%2===1 && eq===1);
@@ -2145,7 +2157,7 @@ function buildTennisDraw(nombre){
     tds+=`<td style="padding:0 6px;height:${EH}px;vertical-align:middle;background:var(--bg3);border:1px solid var(--border);border-bottom:${borderBottom}">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
         <span style="font-size:10px;color:${c16};font-weight:${c16==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px">${v||'—'}</span>
-        ${isAdv16?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+4</span>':''}
+        ${isAdv16?(predInOct16?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+4</span>':'<span style="font-size:8px;color:var(--verde);font-weight:400;flex-shrink:0">+0</span>'):''}
       </div>
     </td>`;
 
@@ -2168,11 +2180,11 @@ function buildTennisDraw(nombre){
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
               <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${oa||'—'}</span>
-              ${p8j&&adv8.has(oa)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
+              ${(p8j&&rcto_s.has(oa))?(adv8.has(oa)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':'<span style="font-size:8px;color:var(--verde);font-weight:400;flex-shrink:0">+0</span>'):''}
             </div>
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
               <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${ob||'—'}</span>
-              ${p8j&&adv8.has(ob)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
+              ${(p8j&&rcto_s.has(ob))?(adv8.has(ob)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':'<span style="font-size:8px;color:var(--verde);font-weight:400;flex-shrink:0">+0</span>'):''}
             </div>
           </div>
         </div>
