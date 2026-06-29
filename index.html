@@ -1984,23 +1984,26 @@ function buildTennisDraw(nombre){
   const fin_s =new Set(fin.filter(v=>v));
 
   // 16 partidos oficiales
+  // ter[0..7] son los 8 terceros en orden del bracket (directo del sheet)
+  // Posición en el bracket: 0→vs1E, 1→vs1I, 2→vs1D, 3→vs1G, 4→vs1A, 5→vs1L, 6→vs1B, 7→vs1K
+  const t3=(i)=>ter[i]||'3ro?';
   const m16=[
-    {a:c1['E'],b:resolve3('ABCDF'),lbl:'1E vs 3ro'},
-    {a:c1['I'],b:resolve3('CDFGH'),lbl:'1I vs 3ro'},
-    {a:c2['A'],b:c2['B'],         lbl:'2A vs 2B'},
-    {a:c1['F'],b:c2['C'],         lbl:'1F vs 2C'},
-    {a:c2['K'],b:c2['L'],         lbl:'2K vs 2L'},
-    {a:c1['H'],b:c2['J'],         lbl:'1H vs 2J'},
-    {a:c1['D'],b:resolve3('BEFIJ'),lbl:'1D vs 3ro'},
-    {a:c1['G'],b:resolve3('AEHIJ'),lbl:'1G vs 3ro'},
-    {a:c1['C'],b:c2['F'],         lbl:'1C vs 2F'},
-    {a:c2['E'],b:c2['I'],         lbl:'2E vs 2I'},
-    {a:c1['A'],b:resolve3('CEFHI'),lbl:'1A vs 3ro'},
-    {a:c1['L'],b:resolve3('EHIJK'),lbl:'1L vs 3ro'},
-    {a:c1['J'],b:c2['H'],         lbl:'1J vs 2H'},
-    {a:c2['D'],b:c2['G'],         lbl:'2D vs 2G'},
-    {a:c1['B'],b:resolve3('EFGIJ'),lbl:'1B vs 3ro'},
-    {a:c1['K'],b:resolve3('DEIJL'),lbl:'1K vs 3ro'},
+    {a:c1['E'],b:t3(0), lbl:'1E vs 3ro'},
+    {a:c1['I'],b:t3(1), lbl:'1I vs 3ro'},
+    {a:c2['A'],b:c2['B'],          lbl:'2A vs 2B'},
+    {a:c1['F'],b:c2['C'],          lbl:'1F vs 2C'},
+    {a:c2['K'],b:c2['L'],          lbl:'2K vs 2L'},
+    {a:c1['H'],b:c2['J'],          lbl:'1H vs 2J'},
+    {a:c1['D'],b:t3(2), lbl:'1D vs 3ro'},
+    {a:c1['G'],b:t3(3), lbl:'1G vs 3ro'},
+    {a:c1['C'],b:c2['F'],          lbl:'1C vs 2F'},
+    {a:c2['E'],b:c2['I'],          lbl:'2E vs 2I'},
+    {a:c1['A'],b:t3(4), lbl:'1A vs 3ro'},
+    {a:c1['L'],b:t3(5), lbl:'1L vs 3ro'},
+    {a:c1['J'],b:c2['H'],          lbl:'1J vs 2H'},
+    {a:c2['D'],b:c2['G'],          lbl:'2D vs 2G'},
+    {a:c1['B'],b:t3(6), lbl:'1B vs 3ro'},
+    {a:c1['K'],b:t3(7), lbl:'1K vs 3ro'},
   ];
 
   // Ganador pronosticado de cada partido de 16vos = oct[i]
