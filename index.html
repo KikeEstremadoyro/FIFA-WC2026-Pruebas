@@ -2042,13 +2042,6 @@ function buildTennisDraw(nombre){
     return advSet.has(v)?'var(--verde)':'var(--rojo)';
   };
 
-  // Render de celda con equipo + pts ganados
-  const teamCell=(v,advSet,played,pts)=>{
-    const color=tc(v,advSet,played);
-    const isAdv=played&&advSet.has(v)&&!globalElim.has(v);
-    const ptsBadge=isAdv&&pts?` <span style="font-size:8px;color:var(--verde);font-weight:700">+${pts}</span>`:'';
-    return `<div style="height:${EH}px;padding:0 6px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:${color};font-weight:${color==='var(--verde)'?'600':'400'};white-space:nowrap;overflow:hidden"><span style="overflow:hidden;text-overflow:ellipsis">${v||'—'}</span>${ptsBadge}</div>`;
-  };
 
   // ── Celdas de equipo ──────────────────────────────────────────────
   const EH=24; // altura de cada celda de equipo en px
@@ -2123,7 +2116,7 @@ function buildTennisDraw(nombre){
     tds+=`<td style="padding:0 6px;height:${EH}px;vertical-align:middle;background:var(--bg3);border:1px solid var(--border);border-bottom:${borderBottom}">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
         <span style="font-size:10px;color:${c16};font-weight:${c16==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px">${v||'—'}</span>
-        ${isAdv16?`<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+4</span>`:''}
+        ${isAdv16?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+4</span>':''}
       </div>
     </td>`;
 
@@ -2143,11 +2136,11 @@ function buildTennisDraw(nombre){
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
               <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${oa||'—'}</span>
-              ${(p8j&&adv8.has(oa))?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
+              ${p8j&&adv8.has(oa)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
             </div>
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
               <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${ob||'—'}</span>
-              ${(p8j&&adv8.has(ob))?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
+              ${p8j&&adv8.has(ob)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
             </div>
           </div>
         </div>
@@ -2203,14 +2196,20 @@ function buildTennisDraw(nombre){
 
     // Final (rowspan=32)
     if(isFirstInFin){
-      const fa=fin[0]||'', fb=fin[1]||'?';
-      const fPlayed=champ!=='';
-      const advF=new Set([champ].filter(x=>x));
-      const ca=tc(fa,advF,fPlayed), cb=tc(fb,advF,fPlayed);
+      const fa=fin[0]||'?', fb=fin[1]||'?';
+      const fj=champ!=='';
+      const fAdv=new Set([champ].filter(x=>x));
+      const ca=tc(fa,fAdv,fj), cb=tc(fb,fAdv,fj);
       tds+=`<td rowspan="32" style="vertical-align:middle;border:none;padding:0 4px">
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
-          <div style="padding:3px 7px;height:${EH}px;display:flex;align-items:center;font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fa||'—'}</div>
-          <div style="padding:3px 7px;height:${EH}px;display:flex;align-items:center;font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fb||'—'}</div>
+          <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
+            <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${fa||'—'}</span>
+            ${fj&&fAdv.has(fa)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+12</span>':''}
+          </div>
+          <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${fb||'—'}</span>
+            ${fj&&fAdv.has(fb)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+12</span>':''}
+          </div>
         </div>
       </td>`;
       tds+=`<td rowspan="32" style="width:12px;border:none"></td>`;
