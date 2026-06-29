@@ -1968,22 +1968,9 @@ function buildTennisDraw(nombre){
   if(col1ro.length>=12) gL.forEach((g,i)=>{c1[g]=getT(col1ro[i])||'?';c2[g]=getT(col1ro[i]+1)||'?';});
 
   // Terceros
-  const ter=[]; const _terSeen=new Set();
-  for(let i=0;i<8;i++){
-    const tv=getT(269+i*3);
-    if(tv&&!_terSeen.has(tv)){ter.push(tv);_terSeen.add(tv);}
-    else ter.push(tv&&_terSeen.has(tv)?null:null);
-  }
-  const terGrupo=ter.map(t=>{
-    if(!t) return null;
-    for(const [g,info] of Object.entries(GRUPOS_INFO))
-      if(info.teams.some(eq=>eq===t||eq.toLowerCase()===t.toLowerCase())) return g;
-    return null;
-  });
-  const resolve3=grupos=>{
-    for(const g of grupos){const idx=terGrupo.findIndex(tg=>tg===g);if(idx>=0&&ter[idx])return ter[idx];}
-    return '?';
-  };
+  // Terceros: cols 269-276 consecutivas (no cada 3)
+  const ter=[]; for(let i=0;i<8;i++) ter.push(getT(269+i)||null);
+  // ter[] es posicional: ter[0]=slot P1, ter[1]=slot P2, ter[2]=slot P7, etc.
 
   // Bracket data
   const oct=[]; for(let i=0;i<16;i++) oct.push(getT(278+i)||'');
