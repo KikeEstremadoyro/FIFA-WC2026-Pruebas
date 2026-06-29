@@ -1391,12 +1391,12 @@ function buildFacts(){
   const avg=Math.round(players.reduce((x,p)=>x+p.tot,0)/players.length);
   const leader=s[0],second=s[1],last=s[s.length-1];
   const allStatsF=calcAllStats();
-  const enrichedF=players.map(p=>({...p,...(allStatsF[p.nombre]||{}),exactosR:(allStatsF[p.nombre]?.exactos??p.exactos)}));
-  const byExactos=[...enrichedF].sort((a,b)=>b.exactosR-a.exactosR);
+  const enrichedS=players.map(p=>({...p,...(allStatsF[p.nombre]||{}),exactosR:(allStatsF[p.nombre]?.exactos??p.exactos)}));
+  const byExactos=[...enrichedS].sort((a,b)=>b.exactosR-a.exactosR);
   const topEx=byExactos[0], minEx=byExactos[byExactos.length-1];
   const topGpos=[...players].sort((a,b)=>b.gpos-a.gpos)[0];
   const zeroGpos=players.filter(p=>p.gpos===0);
-  const zeroExactos=enrichedF.filter(p=>p.exactosR===0);
+  const zeroExactos=enrichedS.filter(p=>p.exactosR===0);
   const belowAvg=players.filter(p=>p.tot<avg).length;
   const within3=players.filter(p=>Math.abs(p.tot-avg)<=3).length;
   const topFG=[...players].sort((a,b)=>b.fg-a.fg)[0];
@@ -1414,7 +1414,7 @@ function buildFacts(){
 
   const topR1=[...players].sort((a,b)=>b.r1-a.r1)[0];
   const topR3=[...players].sort((a,b)=>b.r3-a.r3)[0];
-  const byRes=[...enrichedF].sort((a,b)=>b.resultados-a.resultados);
+  const byRes=[...enrichedS].sort((a,b)=>b.resultados-a.resultados);
   const topRes=byRes[0];
   const minRes=byRes[byRes.length-1];
   const empatados=players.filter(p=>p.rank===1).length;
@@ -1455,7 +1455,7 @@ function buildFacts(){
     })()},
     {icon:'💡',text:`<strong>${belowAvg}</strong> de ${players.length} quinieleiros están debajo del promedio (${avg} pts), y <strong>${players.length-belowAvg}</strong> están arriba. ¿En qué lado estás tú?`},
     {icon:'🎲',text:(()=>{
-      const conExactos=enrichedF.filter(p=>p.exactosR>0);
+      const conExactos=enrichedS.filter(p=>p.exactosR>0);
       const promExactos=conExactos.length>0?Math.round(conExactos.reduce((s,p)=>s+p.exactosR,0)/conExactos.length*10)/10:0;
       return `El promedio de marcadores exactos entre quienes acertaron al menos uno: <strong>${promExactos} exactos</strong>. <strong>${conExactos.length}</strong> de ${players.length} quinieleiros acertaron algún marcador exacto.`;
     })()},
@@ -1744,7 +1744,7 @@ async function genComment(){
   const curiosFacts=[
     enrichedG.filter(p=>p.exactosR>0).length+' de '+players.length+' quinieleiros acertaron al menos un marcador exacto. El rey: '+topEx.nombre.split(' ')[0]+' con '+(topEx.exactosR||topEx.exactos)+'. ¡Nossa!',
     topGpos.nombre.split(' ')[0]+' lleva '+topGpos.gpos+' pts de lugares de grupo — el mejor clasificando equipos. '+(zeroGpos.length>0?zeroGpos.length+' quinieleiros sin pts de grupos todavía.':'¡Todos clasificaron bien!'),
-    (()=>{const zE=enrichedF.filter(p=>p.exactosR===0);return zE.length>0?'<strong>'+zE.length+' quinieleiros</strong> todavía sin ningún marcador exacto. Entre ellos: '+zE.slice(0,2).map(p=>p.nombre.split(' ')[0]).join(' y ')+'. ¡Eita, así está el fuego!':'¡Olha só! Ya todos acertaron al menos un marcador exacto. ¡Que nivel!';})(),
+    (()=>{const zE=enrichedS.filter(p=>p.exactosR===0);return zE.length>0?'<strong>'+zE.length+' quinieleiros</strong> todavía sin ningún marcador exacto. Entre ellos: '+zE.slice(0,2).map(p=>p.nombre.split(' ')[0]).join(' y ')+'. ¡Eita, así está el fuego!':'¡Olha só! Ya todos acertaron al menos un marcador exacto. ¡Que nivel!';})(),
     'El último es <strong>'+last.nombre.split(' ')[0]+'</strong> con '+last.tot+' pts, a '+(leader.tot-last.tot)+' del líder. En eliminatorias todo puede cambiar minha gente — ¡caramba!',
   ];
   const hl3='🧩 Curiosidad del día';
@@ -1976,6 +1976,12 @@ function buildTennisDraw(nombre){
   const fin=[];  for(let i=0;i<2;i++)  fin.push(getT(309+i)||'');
   const third=getT(312)||''; const champ=getT(313)||'';
   const rChamp=rGetT(313)||''; const rThird=rGetT(312)||'';
+
+  // Sets para lookup O(1)
+  const oct_s =new Set(oct.filter(v=>v));
+  const cto_s =new Set(cto.filter(v=>v));
+  const semi_s=new Set(semi.filter(v=>v));
+  const fin_s =new Set(fin.filter(v=>v));
 
   // 16 partidos oficiales
   const m16=[
