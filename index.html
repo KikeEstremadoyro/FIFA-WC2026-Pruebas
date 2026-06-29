@@ -1915,6 +1915,7 @@ function filterBracketPlayer(){
 
 function pickBracket(i){if(window._bracketFound&&window._bracketFound[i])showBracket(window._bracketFound[i].nombre);}
 function showBracket(nombre){
+  try {
   document.getElementById('bracket-player').value=nombre;
   const p=players.find(x=>x.nombre===nombre);
   const pstB=p?`
@@ -1931,12 +1932,17 @@ function showBracket(nombre){
     </div>
     ${pstB}
     ${buildTennisDraw(nombre)}`;
+  } catch(e) {
+    console.error('showBracket error:', e);
+    document.getElementById('bracket-cont').innerHTML = '<div style="padding:20px;color:red;font-size:12px">Error: '+e.message+'<br>Stack: '+e.stack+'</div>';
+  }
 }
 
 function buildTennisDraw(nombre){
+  try {
   let row=null;
   for(const r of quinielaRows){if(r[4]&&r[4].trim()===nombre){row=r;break;}}
-  if(!row) return '<p style="color:var(--text2)">Sin datos de bracket.</p>';
+  if(!row) return '<p style="color:var(--rojo);padding:20px">Sin datos de bracket para: "'+nombre+'" (quinielaRows.length='+quinielaRows.length+')</p>';
 
   const isT=v=>v&&v.trim()&&v.trim()!=='0'&&!/^\d+$/.test(v.trim())&&v.trim().length>1;
   const getT=col=>{const v=row[col]?.trim();return isT(v)?v:null;};
@@ -2205,6 +2211,9 @@ function buildTennisDraw(nombre){
       <tbody>${rows.join('')}</tbody>
     </table>
   </div>`;
+  } catch(e) {
+    return '<p style="color:red;padding:20px">Error en bracket: '+e.message+'</p>';
+  }
 }
 
 // ══════════════════════════════════════════════
