@@ -1957,7 +1957,12 @@ function buildTennisDraw(nombre){
   if(col1ro.length>=12) gL.forEach((g,i)=>{c1[g]=getT(col1ro[i])||'?';c2[g]=getT(col1ro[i]+1)||'?';});
 
   // Terceros
-  const ter=[]; for(let i=0;i<8;i++) ter.push(getT(269+i*3)||null);
+  const ter=[]; const _terSeen=new Set();
+  for(let i=0;i<8;i++){
+    const tv=getT(269+i*3);
+    if(tv&&!_terSeen.has(tv)){ter.push(tv);_terSeen.add(tv);}
+    else ter.push(tv&&_terSeen.has(tv)?null:null);
+  }
   const terGrupo=ter.map(t=>{
     if(!t) return null;
     for(const [g,info] of Object.entries(GRUPOS_INFO))
@@ -2017,18 +2022,32 @@ function buildTennisDraw(nombre){
   const adv_fin =new Set(fin.filter(v=>v));
   const adv_chmp=new Set([champ,third].filter(v=>v));
 
-  // Rastrear eliminados globalmente (rojo en TODOS los niveles desde que pierden)
+  // Eliminados globales: rojo en TODOS los niveles
   const globalElim=new Set();
-  oct.forEach((v,i)=>{ if(v&&v!=='?'&&cto.length>0&&!cto_s.has(v)) globalElim.add(v); });
-  cto.forEach((v,i)=>{ if(v&&v!=='?'&&semi.length>0&&!semi_s.has(v)) globalElim.add(v); });
-  semi.forEach((v,i)=>{ if(v&&v!=='?'&&fin.length>0&&!fin_s.has(v)) globalElim.add(v); });
-  fin.forEach(v=>{ if(v&&v!=='?'&&champ&&v!==champ&&v!==third) globalElim.add(v); });
+  if(oct.some(v=>v)) oct.forEach(v=>{ if(v&&!cto_s.has(v)) globalElim.add(v); });
+  if(cto.some(v=>v)) cto.forEach(v=>{ if(v&&!semi_s.has(v)) globalElim.add(v); });
+  if(semi.some(v=>v)) semi.forEach(v=>{ if(v&&!fin_s.has(v)) globalElim.add(v); });
+  if(fin.some(v=>v)) fin.forEach(v=>{ if(v&&champ&&v!==champ&&v!==third) globalElim.add(v); });
+  // También marcar equipos de ELIMINADOS global set (ya eliminados en grupos)
+  if(typeof ELIMINADOS!=='undefined') ELIMINADOS.forEach(v=>globalElim.add(v));
 
-  const tc=(v,advSet,roundHasResult)=>{
-    if(!v||v==='?') return 'var(--text3)';
-    if(globalElim.has(v)) return 'var(--rojo)'; // eliminado → rojo en todos los niveles
-    if(!roundHasResult) return 'var(--text)';   // no jugado → blanco
-    return advSet.has(v)?'var(--verde)':'var(--rojo)'; // avanzó=verde, perdió=rojo
+  // Puntos por ronda
+  const PTS_ROUND={r16:4,r8:6,r4:8,semi:10,fin:12,ter:5};
+
+  // Color + label de pts ganados/disponibles
+  const tc=(v,advSet,roundHasResult,ptsLabel='')=>{
+    if(!v||v==='?'||v==='3ro?') return 'var(--text3)';
+    if(globalElim.has(v)) return 'var(--rojo)';
+    if(!roundHasResult) return 'var(--text)';
+    return advSet.has(v)?'var(--verde)':'var(--rojo)';
+  };
+
+  // Render de celda con equipo + pts ganados
+  const teamCell=(v,advSet,played,pts)=>{
+    const color=tc(v,advSet,played);
+    const isAdv=played&&advSet.has(v)&&!globalElim.has(v);
+    const ptsBadge=isAdv&&pts?` <span style="font-size:8px;color:var(--verde);font-weight:700">+${pts}</span>`:'';
+    return `<div style="height:${EH}px;padding:0 6px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:${color};font-weight:${color==='var(--verde)'?'600':'400'};white-space:nowrap;overflow:hidden"><span style="overflow:hidden;text-overflow:ellipsis">${v||'—'}</span>${ptsBadge}</div>`;
   };
 
   // ── Celdas de equipo ──────────────────────────────────────────────
@@ -2100,7 +2119,13 @@ function buildTennisDraw(nombre){
       tds+=`<td rowspan="2" style="padding:0 4px;font-size:7px;color:var(--text2);vertical-align:middle;text-align:right;white-space:nowrap;border:none">${m.lbl}</td>`;
     }
     // Equipo de 16vos
-    tds+=`<td style="padding:3px 8px;height:${EH}px;vertical-align:middle;font-size:10px;color:${c16};white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;background:var(--bg3);border:1px solid var(--border);border-bottom:${borderBottom}">${v||'—'}</td>`;
+    const isAdv16=p16Played&&adv16.has(v);
+    tds+=`<td style="padding:0 6px;height:${EH}px;vertical-align:middle;background:var(--bg3);border:1px solid var(--border);border-bottom:${borderBottom}">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
+        <span style="font-size:10px;color:${c16};font-weight:${c16==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px">${v||'—'}</span>
+        ${isAdv16?`<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+4</span>`:''}
+      </div>
+    </td>`;
 
     // Conector 16→8 (pequeña celda de espaciado)
     if(eq===0){
@@ -2109,16 +2134,21 @@ function buildTennisDraw(nombre){
 
     // Octavos (rowspan=2, aparece en la primera fila del par)
     if(isFirstInOct){
-      const oa=oct[p16], ob=oct[p16+1]||'?';
-      const o_a_ok=oa&&oa!=='', o_b_ok=ob&&ob!=='';
-      const octPlayed=cto[oct_i]!=='';
+      const oa=oct[p16]||'?', ob=oct[p16+1]||'?';
+      const p8j=cto[oct_i]!==''; // partido de 8vos jugado
       const adv8=new Set([cto[oct_i]].filter(x=>x));
-      const ca=tc(oa||'?',adv8,octPlayed), cb=tc(ob,adv8,octPlayed);
+      const ca=tc(oa,adv8,p8j), cb=tc(ob,adv8,p8j);
       tds+=`<td rowspan="4" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*4}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
-            <div style="padding:3px 7px;height:${EH}px;display:flex;align-items:center;font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${oa||'—'}</div>
-            <div style="padding:3px 7px;height:${EH}px;display:flex;align-items:center;font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ob||'—'}</div>
+            <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
+              <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${oa||'—'}</span>
+              ${(p8j&&adv8.has(oa))?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
+            </div>
+            <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${ob||'—'}</span>
+              ${(p8j&&adv8.has(ob))?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
+            </div>
           </div>
         </div>
       </td>`;
@@ -2127,15 +2157,21 @@ function buildTennisDraw(nombre){
 
     // Cuartos (rowspan=8)
     if(isFirstInCto){
-      const ca_t=cto[cto_i*2]||'', cb_t=cto[cto_i*2+1]||'?';
-      const cPlayed=semi[cto_i]!=='';
+      const ca_t=cto[cto_i*2]||'?', cb_t=cto[cto_i*2+1]||'?';
+      const p4j=semi[cto_i]!=='';
       const adv4=new Set([semi[cto_i]].filter(x=>x));
-      const ca=tc(ca_t,adv4,cPlayed), cb=tc(cb_t,adv4,cPlayed);
+      const ca=tc(ca_t,adv4,p4j), cb=tc(cb_t,adv4,p4j);
       tds+=`<td rowspan="8" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*8}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
-            <div style="padding:3px 7px;height:${EH}px;display:flex;align-items:center;font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ca_t||'—'}</div>
-            <div style="padding:3px 7px;height:${EH}px;display:flex;align-items:center;font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cb_t||'—'}</div>
+            <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
+              <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${ca_t||'—'}</span>
+              ${p4j&&adv4.has(ca_t)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+8</span>':''}
+            </div>
+            <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${cb_t||'—'}</span>
+              ${p4j&&adv4.has(cb_t)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+8</span>':''}
+            </div>
           </div>
         </div>
       </td>`;
@@ -2144,15 +2180,21 @@ function buildTennisDraw(nombre){
 
     // Semis (rowspan=16)
     if(isFirstInSemi){
-      const sa=semi[semi_i*2]||'', sb=semi[semi_i*2+1]||'?';
-      const sPlayed=fin[semi_i]!=='';
+      const sa=semi[semi_i*2]||'?', sb=semi[semi_i*2+1]||'?';
+      const psj=fin[semi_i]!=='';
       const advS=new Set([fin[semi_i]].filter(x=>x));
-      const ca=tc(sa,advS,sPlayed), cb=tc(sb,advS,sPlayed);
+      const ca=tc(sa,advS,psj), cb=tc(sb,advS,psj);
       tds+=`<td rowspan="16" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*16}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
-            <div style="padding:3px 7px;height:${EH}px;display:flex;align-items:center;font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};border-bottom:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sa||'—'}</div>
-            <div style="padding:3px 7px;height:${EH}px;display:flex;align-items:center;font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sb||'—'}</div>
+            <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
+              <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${sa||'—'}</span>
+              ${psj&&advS.has(sa)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+10</span>':''}
+            </div>
+            <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${sb||'—'}</span>
+              ${psj&&advS.has(sb)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+10</span>':''}
+            </div>
           </div>
         </div>
       </td>`;
