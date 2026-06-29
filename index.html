@@ -305,10 +305,21 @@ const csvUrl = gid => `${BASE}/pub?gid=${gid}&single=true&output=csv`;
 // Equipos eliminados/clasificados — se calculan dinámicamente desde TablaControl
 // pero se inicializan con los conocidos actualmente
 let ELIMINADOS = new Set([
-  'Haití','Haiti','Turquía','Turquia','Túnez','Tunez','Jordania','Panamá','Panama'
+  // Eliminados en fase de grupos
+  'Haití','Haiti','Turquía','Turquia','Túnez','Tunez','Jordania','Panamá','Panama',
+  'Chequia','Czech Republic','Sudáfrica','South Africa','Korea','Corea del Sur',
+  'Escocia','Scotland','Paraguay','Curazao','Costa de Marfil','Nueva Zelanda',
+  'Suecia','Sweden','Egipto','Egypt','Irán','Iran','Cabo Verde','Cape Verde',
+  'Arabia Saudita','Saudi Arabia','Irak','Iraq','Noruega','Norway','Algeria','Algeria',
+  'Austria','Jordania','RD Congo','Uzbekiztán','Uzbekistan','Ghana','Panamá',
+  'Croacia','Croatia','Uruguay','Bosnia','Ecuador','Senegal'
 ]);
 let CLASIFICADOS_16 = new Set([
-  'México','Mexico','USA','Alemania','Argentina','Francia','Noruega',
+  // Clasificados a 16avos (los 32 que pasaron de grupos, equivalente a los 16avos)
+  'México','Mexico','USA','Alemania','Argentina','Francia',
+  'Canadá','Canada','Suiza','Switzerland','Holanda','Netherlands',
+  'España','Spain','Brasil','Brazil','Portugal','Inglaterra','England',
+  'Bélgica','Belgium','Colombia','Australia','Japón','Japan',
 ]);
 
 // Actualizar dinámicamente desde realResults cuando esté disponible
@@ -1982,6 +1993,17 @@ function buildTennisDraw(nombre){
   const third=getT(312)||''; const champ=getT(313)||'';
   const rChamp=rGetT(313)||''; const rThird=rGetT(312)||'';
 
+  // Leer resultados REALES para saber qué partidos ya se jugaron
+  // (los colores dependen de resultados reales, no de pronósticos del quinielero)
+  const roct=[]; for(let i=0;i<16;i++) roct.push(rGetT(278+i)||'');
+  const rcto=[]; for(let i=0;i<8;i++)  rcto.push(rGetT(295+i)||'');
+  const rsemi=[];for(let i=0;i<4;i++)  rsemi.push(rGetT(304+i)||'');
+  const rfin=[];  for(let i=0;i<2;i++)  rfin.push(rGetT(309+i)||'');
+  const roct_s =new Set(roct.filter(v=>v));
+  const rcto_s =new Set(rcto.filter(v=>v));
+  const rsemi_s=new Set(rsemi.filter(v=>v));
+  const rfin_s =new Set(rfin.filter(v=>v));
+
   // Sets para lookup O(1)
   const oct_s =new Set(oct.filter(v=>v));
   const cto_s =new Set(cto.filter(v=>v));
@@ -2023,12 +2045,19 @@ function buildTennisDraw(nombre){
   const adv_chmp=new Set([champ,third].filter(v=>v));
 
   // Eliminados globales: rojo en TODOS los niveles
+  // Solo marcar como eliminado si la ronda SIGUIENTE ya tiene resultados
   const globalElim=new Set();
-  if(oct.some(v=>v)) oct.forEach(v=>{ if(v&&!cto_s.has(v)) globalElim.add(v); });
-  if(cto.some(v=>v)) cto.forEach(v=>{ if(v&&!semi_s.has(v)) globalElim.add(v); });
-  if(semi.some(v=>v)) semi.forEach(v=>{ if(v&&!fin_s.has(v)) globalElim.add(v); });
-  if(fin.some(v=>v)) fin.forEach(v=>{ if(v&&champ&&v!==champ&&v!==third) globalElim.add(v); });
-  // También marcar equipos de ELIMINADOS global set (ya eliminados en grupos)
+  // Usar resultados REALES para determinar eliminados
+  const rctoPlayed=rcto_s.size>0;
+  const rsemiPlayed=rsemi_s.size>0;
+  const rfinPlayed=rfin_s.size>0;
+  const rchampPlayed=rChamp!=='';
+  // Si cuartos reales ya se jugaron: los que estaban en roct pero no pasaron → eliminados
+  if(rctoPlayed) roct.forEach(v=>{ if(v&&!rcto_s.has(v)) globalElim.add(v); });
+  if(rsemiPlayed) rcto.forEach(v=>{ if(v&&!rsemi_s.has(v)) globalElim.add(v); });
+  if(rfinPlayed)  rsemi.forEach(v=>{ if(v&&!rfin_s.has(v)) globalElim.add(v); });
+  if(rchampPlayed) rfin.forEach(v=>{ if(v&&v!==rChamp&&v!==rThird) globalElim.add(v); });
+  // Equipos eliminados en fase de grupos (del set global ELIMINADOS)
   if(typeof ELIMINADOS!=='undefined') ELIMINADOS.forEach(v=>globalElim.add(v));
 
   // Puntos por ronda
@@ -2097,10 +2126,23 @@ function buildTennisDraw(nombre){
     const m=m16[p16];
     const v=eq===0?m.a:m.b;
 
-    // Color de 16vos: ¿el partido ya se jugó? oct[p16]!==''
-    const p16Played=oct[p16]!=='';
-    const adv16=new Set([oct[p16]].filter(x=>x));
-    const c16=tc(v,adv16,p16Played);
+    // Color de 16vos: basado en resultados REALES
+    // Si hay resultado real → verde=ganó, rojo=perdió
+    // Si no hay resultado real → blanco (no jugado)
+    const p16Played=roct[p16]!=='';  // partido jugado REALMENTE
+    const realWinner16=roct[p16]||'';
+    const predWinner16=oct[p16]||''; // ganador predicho por el quinielero
+    let c16;
+    if(globalElim.has(v)){
+      c16='var(--rojo)'; // eliminado en grupos o ronda anterior
+    } else if(!p16Played){
+      c16='var(--text)'; // partido no jugado aún → blanco
+    } else if(v===realWinner16){
+      c16='var(--verde)'; // ganó en realidad → verde
+    } else {
+      c16='var(--rojo)'; // perdió en realidad → rojo
+    }
+    const isAdv16=(p16Played && v===realWinner16);
 
     // Separador visual entre ramas (cada 4 filas = cada par de partidos de 16vos)
     const isLastInPair=(p16%2===1 && eq===1);
@@ -2112,7 +2154,7 @@ function buildTennisDraw(nombre){
       tds+=`<td rowspan="2" style="padding:0 4px;font-size:7px;color:var(--text2);vertical-align:middle;text-align:right;white-space:nowrap;border:none">${m.lbl}</td>`;
     }
     // Equipo de 16vos
-    const isAdv16=p16Played&&adv16.has(v);
+    // isAdv16 now defined above
     tds+=`<td style="padding:0 6px;height:${EH}px;vertical-align:middle;background:var(--bg3);border:1px solid var(--border);border-bottom:${borderBottom}">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
         <span style="font-size:10px;color:${c16};font-weight:${c16==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px">${v||'—'}</span>
@@ -2128,9 +2170,12 @@ function buildTennisDraw(nombre){
     // Octavos (rowspan=2, aparece en la primera fila del par)
     if(isFirstInOct){
       const oa=oct[p16]||'?', ob=oct[p16+1]||'?';
-      const p8j=cto[oct_i]!==''; // partido de 8vos jugado
-      const adv8=new Set([cto[oct_i]].filter(x=>x));
-      const ca=tc(oa,adv8,p8j), cb=tc(ob,adv8,p8j);
+      const p8j=rcto[oct_i]!==''; // partido de 8vos jugado REALMENTE
+      const radv8=new Set([rcto[oct_i]].filter(x=>x));
+      // Color: verde=ganó realmente, rojo=perdió/eliminado, blanco=no jugado
+      const ca=globalElim.has(oa)?'var(--rojo)':!p8j?'var(--text)':radv8.has(oa)?'var(--verde)':'var(--rojo)';
+      const cb=globalElim.has(ob)?'var(--rojo)':!p8j?'var(--text)':radv8.has(ob)?'var(--verde)':'var(--rojo)';
+      const adv8=radv8;
       tds+=`<td rowspan="4" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*4}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2151,9 +2196,11 @@ function buildTennisDraw(nombre){
     // Cuartos (rowspan=8)
     if(isFirstInCto){
       const ca_t=cto[cto_i*2]||'?', cb_t=cto[cto_i*2+1]||'?';
-      const p4j=semi[cto_i]!=='';
-      const adv4=new Set([semi[cto_i]].filter(x=>x));
-      const ca=tc(ca_t,adv4,p4j), cb=tc(cb_t,adv4,p4j);
+      const p4j=rsemi[cto_i]!==''; // cuartos jugado realmente
+      const radv4=new Set([rsemi[cto_i]].filter(x=>x));
+      const ca=globalElim.has(ca_t)?'var(--rojo)':!p4j?'var(--text)':radv4.has(ca_t)?'var(--verde)':'var(--rojo)';
+      const cb=globalElim.has(cb_t)?'var(--rojo)':!p4j?'var(--text)':radv4.has(cb_t)?'var(--verde)':'var(--rojo)';
+      const adv4=radv4;
       tds+=`<td rowspan="8" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*8}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2174,9 +2221,11 @@ function buildTennisDraw(nombre){
     // Semis (rowspan=16)
     if(isFirstInSemi){
       const sa=semi[semi_i*2]||'?', sb=semi[semi_i*2+1]||'?';
-      const psj=fin[semi_i]!=='';
-      const advS=new Set([fin[semi_i]].filter(x=>x));
-      const ca=tc(sa,advS,psj), cb=tc(sb,advS,psj);
+      const psj=rfin[semi_i]!==''; // semis jugado realmente
+      const radvS=new Set([rfin[semi_i]].filter(x=>x));
+      const ca=globalElim.has(sa)?'var(--rojo)':!psj?'var(--text)':radvS.has(sa)?'var(--verde)':'var(--rojo)';
+      const cb=globalElim.has(sb)?'var(--rojo)':!psj?'var(--text)':radvS.has(sb)?'var(--verde)':'var(--rojo)';
+      const advS=radvS;
       tds+=`<td rowspan="16" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*16}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2197,9 +2246,11 @@ function buildTennisDraw(nombre){
     // Final (rowspan=32)
     if(isFirstInFin){
       const fa=fin[0]||'?', fb=fin[1]||'?';
-      const fj=champ!=='';
-      const fAdv=new Set([champ].filter(x=>x));
-      const ca=tc(fa,fAdv,fj), cb=tc(fb,fAdv,fj);
+      const fj=rChamp!==''; // final jugada realmente
+      const rfAdv=new Set([rChamp].filter(x=>x));
+      const ca=globalElim.has(fa)?'var(--rojo)':!fj?'var(--text)':rfAdv.has(fa)?'var(--verde)':'var(--rojo)';
+      const cb=globalElim.has(fb)?'var(--rojo)':!fj?'var(--text)':rfAdv.has(fb)?'var(--verde)':'var(--rojo)';
+      const fAdv=rfAdv;
       tds+=`<td rowspan="32" style="vertical-align:middle;border:none;padding:0 4px">
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
           <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
