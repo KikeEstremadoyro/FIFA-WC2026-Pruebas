@@ -12,6 +12,7 @@
   --bg:#f8f9fa;--bg2:#ffffff;--bg3:#eef0f3;--bg4:#e9ecef;
   --border:#dee2e6;
   --text:#1a1a2e;--text2:#495057;--text3:#868e96;
+  --r:12px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
@@ -56,13 +57,13 @@ tbody tr{border-bottom:1px solid var(--border);transition:background .15s;cursor
 tbody tr:hover{background:var(--bg3)}tbody tr:last-child{border-bottom:none}
 tbody td{padding:10px 14px;font-size:12px;white-space:nowrap}
 .rank{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600}
-.r1c{color:var(--dorado)}.r2c{color:#C0C0C0}.r3c{color:#CD7F32}.rlc{color:var(--rojo)}
+.r1c{color:var(--dorado)}.r2c{color:#8a8a8a}.r3c{color:#CD7F32}.rlc{color:var(--rojo)}
 .pts{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:var(--verde)}
 .dif{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text)}.dif.zero{color:var(--dorado)}
 .ztop{background:rgba(255,215,0,0.03)}.zlast{background:rgba(229,57,53,0.03)}
 @media(max-width:0px){.hide-mob{display:none}}
-.btn{background:var(--verde);color:#000;border:none;padding:9px 18px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
-.btn:hover{background:#00e85f}
+.btn{background:var(--verde);color:#fff;border:none;padding:9px 18px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
+.btn:hover{background:var(--verde-dark)}
 .search-big{max-width:480px;margin:0 auto 28px;display:flex;gap:10px}
 .search-big input{flex:1}
 .profile-card{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:18px}
@@ -101,7 +102,7 @@ tbody td{padding:10px 14px;font-size:12px;white-space:nowrap}
 .chat-in-row{background:var(--bg3);border:1px solid rgba(0,200,83,.2);border-radius:0 0 var(--r) var(--r);padding:14px;display:flex;gap:10px}
 .chat-in{flex:1;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:9px 13px;border-radius:7px;font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
 .chat-in:focus{border-color:var(--verde)}.chat-in::placeholder{color:var(--text3)}
-.chat-send{background:var(--verde);color:#000;border:none;padding:9px 14px;border-radius:7px;cursor:pointer;font-weight:700;font-size:15px}
+.chat-send{background:var(--verde);color:#fff;border:none;padding:9px 14px;border-radius:7px;cursor:pointer;font-weight:700;font-size:15px}
 .chat-send:disabled{background:var(--text3);cursor:default}
 .typing{display:flex;gap:4px;align-items:center;padding:2px 0}
 .typing span{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:typ .8s infinite}
@@ -166,6 +167,7 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
   <button class="nb" onclick="show('profetas')" id="btn-profetas">🔮 Profetas</button>
   <button class="nb" onclick="show('nominados')" id="btn-nominados">🎖 Nominados</button>
   <button class="nb" onclick="show('grupos')" id="btn-grupos">📊 Grupos</button>
+  <button class="nb" onclick="show('eliminados')" id="btn-eliminados">❌ Eliminados</button>
   <button class="nb" onclick="show('comentarios')" id="btn-comentarios">📰 Crónica</button>
   <button class="nb" onclick="show('curiosos')" id="btn-curiosos">🧩 Curiosidades</button>
   <button class="nb" onclick="show('claudinho')" id="btn-claudinho">🤖 Claudinho</button>
@@ -233,6 +235,11 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
 <div id="grupos" class="sec">
   <div class="sec-title">📊 Por Grupo</div>
   <div class="grupos-grid" id="grupos-cont"><div class="loading"><div class="spinner"></div><p>Calculando...</p></div></div>
+</div>
+
+<div id="eliminados" class="sec">
+  <div class="sec-title">❌ Eliminados</div>
+  <div id="eliminados-cont"><div class="loading"><div class="spinner"></div><p>Calculando...</p></div></div>
 </div>
 
 <div id="comentarios" class="sec">
@@ -306,16 +313,17 @@ const csvUrl = gid => `${BASE}/pub?gid=${gid}&single=true&output=csv`;
 // pero se inicializan con los conocidos actualmente
 let ELIMINADOS = new Set([
   // Solo los 17 equipos eliminados confirmados al 28-jun-26
+  // Nombres deben coincidir EXACTAMENTE con los usados en GRUPOS_INFO
   'Haití','Haiti',
-  'Túnez','Tunez',
-  'Uzbekiztán','Uzbekistan',
+  'Tunisia','Túnez','Tunez', // GRUPOS_INFO usa 'Tunisia'
+  'Uzbekistán','Uzbekistan',
   'Jordania',
   'Panamá','Panama',
   'Catar','Qatar',
   'Curazao',
-  'Nueva Zelanda','New Zealand',
+  'N.Zelanda','Nueva Zelanda','New Zealand', // GRUPOS_INFO usa 'N.Zelanda'
   'Chequia','Czech Republic',
-  'Arabia Saudita','Saudi Arabia',
+  'Arabia','Arabia Saudita','Saudi Arabia', // GRUPOS_INFO usa 'Arabia'
   'Uruguay',
   'Escocia','Scotland',
   'Turquía','Turkey',
@@ -324,24 +332,6 @@ let ELIMINADOS = new Set([
   'Sudáfrica','South Africa',
   'Irak','Iraq'
 ]);
-let CLASIFICADOS_16 = new Set([
-  // Clasificados a 16avos (los 32 que pasaron de grupos, equivalente a los 16avos)
-  'México','Mexico','USA','Alemania','Argentina','Francia',
-  'Canadá','Canada','Suiza','Switzerland','Holanda','Netherlands',
-  'España','Spain','Brasil','Brazil','Portugal','Inglaterra','England',
-  'Bélgica','Belgium','Colombia','Australia','Japón','Japan',
-]);
-
-// Actualizar dinámicamente desde realResults cuando esté disponible
-function updateTorneoSets(){
-  if(!realResults.length) return;
-  // La fila de resultados reales tiene los 1ros y 2dos confirmados en cols 233+
-  // Si un 1ro o 2do tiene resultado (pts > 0 en col+2), ese equipo clasifica
-  // Si un equipo aparece solo en col de 3ros sin confirmar, puede ser eliminado
-  // Por ahora mantenemos el Set manual — se puede expandir cuando haya más resultados
-  // Los 1ros/2dos de grupos con todos partidos jugados están en CLASIFICADOS_16
-  // Los que no puedan matemáticamente clasificar están en ELIMINADOS
-}
 
 // ══════════════════════════════════════════════
 // STATE
@@ -457,27 +447,47 @@ async function loadAll() {
     // La fila 2 (línea 3 en 1-based) tiene los clasificados reales y resultados de bracket
     const _isTN = v => v && v.trim().length > 1 && isNaN(parseInt(v.trim()))
                     && !['Lg','Nombre','1ro','2do','3ro'].includes(v.trim());
-    // Buscar en ctrlRows: la fila que tiene equipos en col 233 (clasificados reales)
-    for(let i=0;i<Math.min(ctrlRows.length,10);i++){
-      const r=ctrlRows[i];
-      if(_isTN(r[233]?.trim())){
+
+    // Buscar fila de resultados reales: la que tiene equipos en col 278 (ganadores reales de 16avos)
+    // Estrategia 1: quinielaRows — la fila sin nombre de quinielero (col 4 vacío) con equipo en col 278
+    for(const r of quinielaRows){
+      const nombre=r[4]?.trim()||'';
+      const hasOct=_isTN(r[278]);
+      const hasClasif=_isTN(r[233]);
+      if((hasOct||hasClasif) && (!nombre || nombre==='Nombre' || !isNaN(parseInt(r[5]||'')) || nombre.length<3)){
+        // Evitar filas de quinieleros reales: si tiene puntos numéricos en r[5] y nombre largo, es quinielero
+        if(nombre && nombre.length>3 && !isNaN(parseInt(r[5]||''))) continue;
         realResults=r;
-        console.log('✅ Resultados reales ctrlRows['+i+']: 1roA=',r[233],'oct0=',r[278]);
+        console.log('✅ Resultados reales quinielaRows: col233=',r[233],'col278=',r[278]);
         break;
       }
     }
-    // Fallback: buscar en quinielaRows
+
+    // Estrategia 2: ctrlRows — funciona si TablaControl exporta columnas anchas
     if(!realResults.length){
-      for(const r of quinielaRows){
-        const c4=r[4]?.trim()||'';
-        if(!c4 && _isTN(r[233]?.trim())){
+      for(let i=0;i<Math.min(ctrlRows.length,15);i++){
+        const r=ctrlRows[i];
+        if(_isTN(r[278])||_isTN(r[233])){
           realResults=r;
-          console.log('✅ Resultados reales quinielaRows: 1roA=',r[233],'oct0=',r[278]);
+          console.log('✅ Resultados reales ctrlRows['+i+']: col233=',r[233],'col278=',r[278]);
           break;
         }
       }
     }
-    if(!realResults.length) console.warn('⚠️ Sin resultados reales. ctrlRows:',ctrlRows.length,'quinielaRows:',quinielaRows.length);
+
+    // Estrategia 3: buscar por nombre especial conocido ('Resultados','Real','Reales')
+    if(!realResults.length){
+      for(const r of quinielaRows){
+        const nombre=(r[4]||r[3]||'').trim().toLowerCase();
+        if(nombre.includes('real')||nombre.includes('resultado')){
+          realResults=r;
+          console.log('✅ Resultados reales por nombre especial:',r[4]||r[3]);
+          break;
+        }
+      }
+    }
+
+    if(!realResults.length) console.warn('⚠️ Sin resultados reales. quinielaRows:',quinielaRows.length,'ctrlRows:',ctrlRows.length);
   } catch(e) { console.warn('No se cargaron resultados reales:', e.message); }
 
   document.getElementById('search-t').value=''; // limpiar búsqueda al recargar
@@ -966,7 +976,7 @@ function buildMatchCards(nombre){
       // Solo mostrar pts si hay resultado real confirmado en TablaControl
       // ptsBono viene del sheet y ya tiene el puntaje correcto (4 si acertó 1ro, 3 si acertó 2do, etc)
       const pts1Label = realC1 ? (realC1===n1 ? '<span style="color:var(--dorado);font-weight:700;font-size:10px;margin-left:4px">+4pts ✓</span>' : '<span style="color:var(--rojo);font-size:10px;margin-left:4px">✗ Real: '+realC1+'</span>') : (n1!=='?'?'<span style="color:var(--text3);font-size:9px;margin-left:4px">⏳</span>':'');
-      const pts2Label = realC2 ? (realC2===n2 ? '<span style="color:#C0C0C0;font-weight:700;font-size:10px;margin-left:4px">+3pts ✓</span>' : '<span style="color:var(--rojo);font-size:10px;margin-left:4px">✗ Real: '+realC2+'</span>') : (n2!=='?'?'<span style="color:var(--text3);font-size:9px;margin-left:4px">⏳</span>':'');
+      const pts2Label = realC2 ? (realC2===n2 ? '<span style="color:#8a8a8a;font-weight:700;font-size:10px;margin-left:4px">+3pts ✓</span>' : '<span style="color:var(--rojo);font-size:10px;margin-left:4px">✗ Real: '+realC2+'</span>') : (n2!=='?'?'<span style="color:var(--text3);font-size:9px;margin-left:4px">⏳</span>':'');
       // badge: solo cuando hay resultado real
       const badge = ptsBono>=4?'<span class="badge b-exact" style="font-size:9px">⭐+4</span>':ptsBono>0?'<span class="badge b-result" style="font-size:9px">✓+'+ptsBono+'</span>':realC1&&realC1!==n1?'<span class="badge b-miss" style="font-size:9px">✗</span>':!realC1&&n1!=='?'?'<span class="badge b-pend" style="font-size:9px">⏳</span>':'';
       // 3er lugar: buscar si hay un equipo de este grupo en los terceros del bracket
@@ -988,7 +998,7 @@ function buildMatchCards(nombre){
           <span style="color:var(--dorado)">🥇</span>&nbsp;<span>${n1}</span>${pts1Label}
         </div>
         <div style="padding:5px 10px;${ter3?'border-bottom:1px dashed var(--border);':''}font-size:11px;display:flex;align-items:center;flex-wrap:wrap;gap:2px">
-          <span style="color:#C0C0C0">🥈</span>&nbsp;<span>${n2}</span>${pts2Label}
+          <span style="color:#8a8a8a">🥈</span>&nbsp;<span>${n2}</span>${pts2Label}
         </div>
         ${ter3Html}
       </div>`;
@@ -1133,8 +1143,6 @@ function buildProfetas(){
         <th style="padding:5px 4px;text-align:center;color:var(--dorado)">🏆</th>
       </tr></thead>
       <tbody>${topOct16.map(([eq,n16],i)=>{
-        const n8=ctoCount[eq]||0, n4=ctoCount[eq]||0;
-        const nSemi=semiCount[eq]||0, nFin=finCount[eq]||0, nChamp=champCount[eq]||0;
         const isMex=eq==='México';
         return `<tr style="border-bottom:1px solid var(--border);background:${isMex?'rgba(0,140,69,0.06)':'transparent'}">
           <td style="padding:4px 8px;color:var(--text2);font-weight:600">${i+1}</td>
@@ -1749,7 +1757,7 @@ async function genComment(){
     ? (bigMover.diff>0?'📈 '+bigMover.nombre.split(' ')[0]+' subió '+bigMover.diff+' lugares':'📊 Sin grandes movimientos')
     : '🎯 '+topEx.nombre.split(' ')[0]+' lidera en exactos';
   const body2 = hasMover
-    ? ((bigMover.diff>0?'<strong>'+bigMover.nombre.split(' ')[0]+'</strong> subió <strong>'+bigMover.diff+' posiciones</strong> (del #'+bigMover.oldRank+' al #'+bigMover.newRank+'). ':'')+
+    ? ((bigMover.diff>0?'<strong>'+bigMover.nombre.split(' ')[0]+'</strong> subió <strong>'+bigMover.diff+' posiciones</strong> (del #'+bigMover.prevRank+' al #'+bigMover.p.rank+'). ':'')+
       (bigDrop.diff>0?'<strong>'+bigDrop.nombre.split(' ')[0]+'</strong> bajó '+bigDrop.diff+' puestos (del #'+bigDrop.oldRank+' al #'+bigDrop.newRank+'). Eita, así es esto minha gente!':''))
     : '<strong>'+topEx.nombre.split(' ')[0]+'</strong> lidera en exactos con <strong>'+(topEx.exactosR||topEx.exactos)+' marcadores precisos</strong>. '+(zeroGpos.length>0?zeroGpos.length+' quinieleiros aún sin puntos de grupos — ¡hay que ponerse las pilas, caramba!':'¡Todos los quinieleiros ya tienen puntos de grupos — eso habla del nivel del grupo!');
 
@@ -1772,7 +1780,7 @@ async function genComment(){
     comentCard(today,'tag-cur','🧩 Curiosidad',hl3,body3);
 
   // Cargar historial de días anteriores
-  if(elHist) elHist.innerHTML=loadHistoryComments(dateKey);
+  if(elHist) elHist.innerHTML=loadHistoryComments(_ckToday);
 
   // Intentar con IA si hay API key
   if(apiKey){
@@ -1796,8 +1804,8 @@ async function genComment(){
           {date:today,tagClass:tagMap[parsed[1].tag]||'tag-cur',tag:parsed[1].tag,headline:parsed[1].headline,body:parsed[1].body},
           {date:today,tagClass:tagMap[parsed[2].tag]||'tag-cur',tag:parsed[2].tag,headline:parsed[2].headline,body:parsed[2].body},
         ];
-        saveComment(dateKey, todayCards);
-        if(elHist) elHist.innerHTML=loadHistoryComments(dateKey);
+        saveComment(_ckToday, todayCards);
+        if(elHist) elHist.innerHTML=loadHistoryComments(_ckToday);
       }
     }catch(e){
       console.warn('Crónica IA falló:',e.message);
@@ -1807,8 +1815,8 @@ async function genComment(){
         {date:today,tagClass:'tag-mov',tag:'Movimientos',headline:hl2,body:body2},
         {date:today,tagClass:'tag-cur',tag:'Curiosidad',headline:hl3,body:body3},
       ];
-      saveComment(dateKey, todayCards);
-      if(elHist) elHist.innerHTML=loadHistoryComments(dateKey);
+      saveComment(_ckToday, todayCards);
+      if(elHist) elHist.innerHTML=loadHistoryComments(_ckToday);
     }
   } else {
     // Sin API key: guardar versión automática
@@ -1817,8 +1825,8 @@ async function genComment(){
       {date:today,tagClass:'tag-mov',tag:'Movimientos',headline:hl2,body:body2},
       {date:today,tagClass:'tag-cur',tag:'Curiosidad',headline:hl3,body:body3},
     ];
-    saveComment(dateKey, todayCards);
-    if(elHist) elHist.innerHTML=loadHistoryComments(dateKey);
+    saveComment(_ckToday, todayCards);
+    if(elHist) elHist.innerHTML=loadHistoryComments(_ckToday);
   }
 }
 
@@ -1889,7 +1897,7 @@ function show(id){
   if(id==='profetas'&&quinielaRows.length)buildProfetas();
   if(id==='grupos'&&quinielaRows.length)buildGrupos();
   if(id==='eliminados'&&quinielaRows.length)buildEliminados();
-  if(id==='cronica')genComment(); // regenerar si los elementos son visibles
+  if(id==='comentarios')genComment(); // regenerar si los elementos son visibles
   if(id==='curiosos'&&players.length)buildFacts();
 }
 
@@ -2035,17 +2043,21 @@ function buildTennisDraw(nombre){
   const adv_chmp=new Set([champ,third].filter(v=>v));
 
   // Eliminados globales: rojo en TODOS los niveles
-  // Solo marcar como eliminado si la ronda SIGUIENTE ya tiene resultados
   const globalElim=new Set();
-  // Usar resultados REALES para determinar eliminados
   const rctoPlayed=rcto_s.size>0;
   const rsemiPlayed=rsemi_s.size>0;
   const rfinPlayed=rfin_s.size>0;
   const rchampPlayed=rChamp!=='';
-  // Si cuartos reales ya se jugaron: los que estaban en roct pero no pasaron → eliminados
+
+  // Perdedores de 16avos: agregar individualmente por partido jugado (no esperar a cuartos)
+  roct.forEach((ganador,i)=>{ if(ganador){ const perdedor=m16[i].a===ganador?m16[i].b:m16[i].a; if(perdedor&&perdedor!=='?'&&perdedor!=='3ro?') globalElim.add(perdedor); } });
+  // Si 8vos reales ya se jugaron: los que pasaron de 16vos pero no ganaron su partido de 8vos → eliminados
   if(rctoPlayed) roct.forEach(v=>{ if(v&&!rcto_s.has(v)) globalElim.add(v); });
+  // Si cuartos reales ya se jugaron: los que pasaron de 8vos pero no ganaron cuartos → eliminados
   if(rsemiPlayed) rcto.forEach(v=>{ if(v&&!rsemi_s.has(v)) globalElim.add(v); });
+  // Si semis reales ya se jugaron: los que pasaron de cuartos pero no ganaron semis → eliminados
   if(rfinPlayed)  rsemi.forEach(v=>{ if(v&&!rfin_s.has(v)) globalElim.add(v); });
+  // Si la final ya se jugó: el finalista que no fue campeón ni 3er lugar → eliminado (perdió la final)
   if(rchampPlayed) rfin.forEach(v=>{ if(v&&v!==rChamp&&v!==rThird) globalElim.add(v); });
   // Equipos eliminados en fase de grupos (del set global ELIMINADOS)
   if(typeof ELIMINADOS!=='undefined') ELIMINADOS.forEach(v=>globalElim.add(v));
@@ -2126,15 +2138,15 @@ function buildTennisDraw(nombre){
     if(globalElim.has(v)){
       c16='var(--rojo)'; // eliminado en grupos o ronda anterior
     } else if(!p16Played){
-      c16='var(--text)'; // partido no jugado aún → blanco
+      c16='var(--text)'; // partido no jugado aún → color normal (neutro)
     } else if(v===realWinner16){
       c16='var(--verde)'; // ganó en realidad → verde
     } else {
       c16='var(--rojo)'; // perdió en realidad → rojo
     }
     const isAdv16=(p16Played && v===realWinner16); // ganó REALMENTE
-    // Badge: solo si ganó realmente Y el quinielero lo puso en oct[] (siguiente ronda)
-    const predInOct16 = oct[p16]===v; // el quinielero predijo que v pasa a octavos
+    // Badge +4: ganó realmente Y el quinielero lo tenía en cualquiera de sus 16 slots
+    const predInOct16 = oct_s.has(v);
 
     // Separador visual entre ramas (cada 4 filas = cada par de partidos de 16vos)
     const isLastInPair=(p16%2===1 && eq===1);
@@ -2173,11 +2185,11 @@ function buildTennisDraw(nombre){
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
               <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${oa||'—'}</span>
-              ${(p8j&&rcto_s.has(oa))?(adv8.has(oa)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':'<span style="font-size:8px;color:var(--verde);font-weight:400;flex-shrink:0">+0</span>'):''}
+              ${(p8j&&rcto_s.has(oa)&&cto_s.has(oa))?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
             </div>
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
               <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${ob||'—'}</span>
-              ${(p8j&&rcto_s.has(ob))?(adv8.has(ob)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':'<span style="font-size:8px;color:var(--verde);font-weight:400;flex-shrink:0">+0</span>'):''}
+              ${(p8j&&rcto_s.has(ob)&&cto_s.has(ob))?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
             </div>
           </div>
         </div>
@@ -2198,11 +2210,11 @@ function buildTennisDraw(nombre){
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
               <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${ca_t||'—'}</span>
-              ${p4j&&adv4.has(ca_t)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+8</span>':''}
+              ${p4j&&adv4.has(ca_t)&&semi_s.has(ca_t)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+8</span>':''}
             </div>
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
               <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${cb_t||'—'}</span>
-              ${p4j&&adv4.has(cb_t)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+8</span>':''}
+              ${p4j&&adv4.has(cb_t)&&semi_s.has(cb_t)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+8</span>':''}
             </div>
           </div>
         </div>
@@ -2223,11 +2235,11 @@ function buildTennisDraw(nombre){
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
               <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${sa||'—'}</span>
-              ${psj&&advS.has(sa)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+10</span>':''}
+              ${psj&&advS.has(sa)&&fin_s.has(sa)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+10</span>':''}
             </div>
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
               <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${sb||'—'}</span>
-              ${psj&&advS.has(sb)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+10</span>':''}
+              ${psj&&advS.has(sb)&&fin_s.has(sb)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+10</span>':''}
             </div>
           </div>
         </div>
@@ -2262,12 +2274,12 @@ function buildTennisDraw(nombre){
         <div style="margin-bottom:8px;text-align:center;padding:8px 6px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:7px">
           <div style="font-size:9px;color:var(--text2);font-weight:600">🏆 CAMPEÓN</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${champOk&&rChamp===champ?'var(--verde)':'var(--dorado)'};margin-top:2px">${champ||'TBD'}</div>
-          ${champOk?`<div style="font-size:8px;color:${rChamp===champ?'var(--verde)':'var(--rojo)'};">${rChamp===champ?'⭐ Correcto':'✗ '+rChamp}</div>`:''}
+          ${champOk?`<div style="font-size:8px;color:${rChamp===champ?'var(--verde)':'var(--rojo)'};font-weight:${rChamp===champ?'700':'400'}">${rChamp===champ?'⭐ +12 Correcto':'✗ '+rChamp}</div>`:''}
         </div>
         <div style="text-align:center;padding:6px;background:rgba(205,127,50,.06);border:1px solid rgba(205,127,50,.28);border-radius:7px">
           <div style="font-size:9px;color:var(--text2);font-weight:600">🥉 3ER LUGAR</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:${thirdOk&&rThird===third?'var(--verde)':'#CD7F32'};margin-top:1px">${third||'TBD'}</div>
-          ${thirdOk?`<div style="font-size:8px;color:${rThird===third?'var(--verde)':'var(--rojo)'};">${rThird===third?'✓':'✗ '+rThird}</div>`:''}
+          ${thirdOk?`<div style="font-size:8px;color:${rThird===third?'var(--verde)':'var(--rojo)'};font-weight:${rThird===third?'700':'400'}">${rThird===third?'✓ +5 Correcto':'✗ '+rThird}</div>`:''}
         </div>
       </td>`;
     }
@@ -2325,7 +2337,7 @@ function buildEliminados(){
   const counts={};
   const addCount=(equipo,ronda)=>{
     if(!equipo)return;
-    if(!counts[equipo])counts[equipo]={team:equipo,pj:0,pts:0,dg:0,r16:0,r8:0,r4:0,semi:0,fin:0,ter:0,champ:0};
+    if(!counts[equipo])counts[equipo]={team:equipo,pj:0,pts:0,dg:0,r16:0,r4:0,semi:0,fin:0,ter:0,champ:0};
     counts[equipo][ronda]=(counts[equipo][ronda]||0)+1;
   };
 
@@ -2334,14 +2346,12 @@ function buildEliminados(){
     if(!nombre||nombre==='Nombre'||isNaN(parseInt(r[5]))) continue;
     // Leer clasificados 16vos (oct: cols 278-293)
     for(let i=0;i<16;i++){const t=getV(r,278+i);if(t)addCount(t,'r16');}
-    for(let i=0;i<8;i++){const t=getV(r,295+i);if(t)addCount(t,'r8');}
+    // Cuartos (8 equipos que llegan a cuartos, ganadores de 8vos): cols 295-302
+    for(let i=0;i<8;i++){const t=getV(r,295+i);if(t)addCount(t,'r4');}
     for(let i=0;i<4;i++){const t=getV(r,304+i);if(t)addCount(t,'semi');}
     for(let i=0;i<2;i++){const t=getV(r,309+i);if(t)addCount(t,'fin');}
     const ter=getV(r,312);if(ter)addCount(ter,'ter');
     const champ=getV(r,313);if(champ)addCount(champ,'champ');
-    // r4: cuartos (8 equipos que llegan a cuartos = ganadores de 8vos)
-    for(let i=0;i<4;i++){const t=getV(r,295+i*2)||getV(r,295+i*2+1);} // aprox
-    for(let i=0;i<8;i++){const t=getV(r,295+i);if(t)addCount(t,'r4');}
   }
 
   // Obtener datos reales de grupos para PJ/Pts/DG
@@ -2394,7 +2404,6 @@ function buildEliminados(){
     pts:teamStats[t]?.pts||0,
     dg:(teamStats[t]?.gf||0)-(teamStats[t]?.gc||0),
     r16:counts[t]?.r16||0,
-    r8:counts[t]?.r8||0,
     r4:counts[t]?.r4||0,
     semi:counts[t]?.semi||0,
     fin:counts[t]?.fin||0,
@@ -2404,7 +2413,7 @@ function buildEliminados(){
   })).sort((a,b)=>b.pts-a.pts||b.dg-a.dg);
 
   document.getElementById('eliminados-cont').innerHTML=`
-    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Pronósticos de <strong>${total}</strong> quinieleros para cada equipo en cada ronda.</p>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">PJ/Pts/DG = resultados reales de grupos. Las columnas de ronda muestran cuántos de los <strong>${total}</strong> quinieleros pronosticaron a cada equipo llegando ahí.</p>
     <div style="overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;font-size:11px;white-space:nowrap">
       <thead><tr style="border-bottom:2px solid var(--border)">
@@ -2412,7 +2421,6 @@ function buildEliminados(){
         <th style="padding:6px 4px;text-align:center;font-weight:700;color:var(--text2)">PJ</th>
         <th style="padding:6px 4px;text-align:center;font-weight:700;color:var(--text2)">Pts</th>
         <th style="padding:6px 4px;text-align:center;font-weight:700;color:var(--text2)">DG</th>
-        <th style="padding:6px 4px;text-align:center;font-weight:700;color:var(--azul)">16vos</th>
         <th style="padding:6px 4px;text-align:center;font-weight:700;color:var(--azul)">8vos</th>
         <th style="padding:6px 4px;text-align:center;font-weight:700;color:var(--azul)">4tos</th>
         <th style="padding:6px 4px;text-align:center;font-weight:700;color:var(--azul)">Semis</th>
@@ -2427,7 +2435,6 @@ function buildEliminados(){
           <td style="padding:5px 4px;text-align:center;font-weight:600;color:var(--text)">${r.pts}</td>
           <td style="padding:5px 4px;text-align:center;color:${r.dg>0?'var(--verde)':r.dg<0?'var(--rojo)':'var(--text2)'}">${r.dg>0?'+':''}${r.dg}</td>
           <td style="padding:5px 4px;text-align:center;color:var(--text2)">${r.r16||'—'}</td>
-          <td style="padding:5px 4px;text-align:center;color:var(--text2)">${r.r8||'—'}</td>
           <td style="padding:5px 4px;text-align:center;color:var(--text2)">${r.r4||'—'}</td>
           <td style="padding:5px 4px;text-align:center;color:var(--text2)">${r.semi||'—'}</td>
           <td style="padding:5px 4px;text-align:center;color:${r.fin?'var(--dorado)':'var(--text3)'}">${r.fin||'—'}</td>
