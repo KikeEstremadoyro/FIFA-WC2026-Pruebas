@@ -303,43 +303,17 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
 // CONFIG
 // ══════════════════════════════════════════════
 const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSx33hImGNFAoNxBKi7JD7ZqGMoVyeMNvSD6j1JdMxo38oB61xgTYvw3YLUImn-dMwZ-j5gdHMcprh5';
-const GIDS = { tabla:'1834452765', quinielas:'1616528942', control:'1834452765' };
+const GIDS = { tabla:'1834452765', quinielas:'1616528942', control:'1834452765', eliminados:'48952920' };
 const csvUrl = gid => `${BASE}/pub?gid=${gid}&single=true&output=csv`;
-
-// ══════════════════════════════════════════════
-// ESTADO DEL TORNEO — actualizar conforme avanza
-// ══════════════════════════════════════════════
-// Equipos eliminados/clasificados — se calculan dinámicamente desde TablaControl
-// pero se inicializan con los conocidos actualmente
-let ELIMINADOS = new Set([
-  // Solo los 17 equipos eliminados confirmados al 28-jun-26
-  // Nombres deben coincidir EXACTAMENTE con los usados en GRUPOS_INFO
-  'Haití','Haiti',
-  'Tunisia','Túnez','Tunez', // GRUPOS_INFO usa 'Tunisia'
-  'Uzbekistán','Uzbekistan',
-  'Jordania',
-  'Panamá','Panama',
-  'Catar','Qatar',
-  'Curazao',
-  'N.Zelanda','Nueva Zelanda','New Zealand', // GRUPOS_INFO usa 'N.Zelanda'
-  'Chequia','Czech Republic',
-  'Arabia','Arabia Saudita','Saudi Arabia', // GRUPOS_INFO usa 'Arabia'
-  'Uruguay',
-  'Escocia','Scotland',
-  'Turquía','Turkey',
-  'Korea','Corea del Sur','South Korea',
-  'Irán','Iran',
-  'Sudáfrica','South Africa',
-  'Irak','Iraq'
-]);
 
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
 let players = [], sortDir = {col:'tot',asc:false};
 let quinielaRows = [], isLoading = false;
-let realResults = []; // fila 3 de TablaControl: resultados reales partido a partido
-let apiKey = localStorage.getItem('claudinho_key') || ''; // Set via console: localStorage.setItem('claudinho_key','sk-ant-...')
+let realResults = [];      // fila de TablaControl con ganadores reales (cols 278-293 = JS:KH = 16avos)
+let eliminadosSet = new Set(); // equipos eliminados cargados dinámicamente desde pestaña Eliminados col B
+let apiKey = localStorage.getItem('claudinho_key') || '';
 let prevComments = JSON.parse(localStorage.getItem('claudinho_comments') || '[]');
 
 // ══════════════════════════════════════════════
@@ -426,69 +400,46 @@ async function loadAll() {
     try { quinielaRows=await fetchCSV(GIDS.control); } catch(e2) {}
   }
 
-  // Cargar resultados reales desde TablaControl
-  // La fila de resultados reales es la que tiene col[3]==='Lg', col[4]==='Nombre'
-  // col[5]==='R1', col[6]==='R2' (header de TablaControl) con scores en col 17+
-  // Importante: cargar TablaControl de forma INDEPENDIENTE, no mezclar con quinielaRows
+  // ── Cargar ganadores reales de 16avos desde TablaControl (cols JS:KH = índices 278-293) ──
+  // La fila con datos reales es la que tiene nombres de equipo en esas columnas (no números)
   try {
     const ctrlRows = await fetchCSV(GIDS.control);
-    // Buscar la fila que tiene el header exacto de TablaControl:
-    // col[3]='Lg', col[4]='Nombre', col[5]='R1', col[6]='R2', col[7]='R3', col[8]='Marc'
-    // Esta fila tiene los scores reales en col 17+ (2,0,4 = gol1,gol2,pts para cada partido)
-    // Log todas las primeras 8 filas para diagnóstico
-    console.log('TablaControl primeras filas:');
-    for(let i=0;i<Math.min(8,ctrlRows.length);i++){
-      const r=ctrlRows[i];
-      console.log('fila',i,'| cols 0-10:', r.slice(0,10).join(' | '), '| col17-19:', r[17], r[18], r[19]);
-    }
-    // Buscar fila de resultados reales: tiene Lg,Nombre y scores numéricos en col 17+
-    // Resultados reales del bracket: están en ctrlRows (TablaControl) en la fila 2 (índice 2)
-    // TablaControl tiene la misma estructura de columnas que Quinielas2026
-    // La fila 2 (línea 3 en 1-based) tiene los clasificados reales y resultados de bracket
-    const _isTN = v => v && v.trim().length > 1 && isNaN(parseInt(v.trim()))
-                    && !['Lg','Nombre','1ro','2do','3ro'].includes(v.trim());
-
-    // Buscar fila de resultados reales: la que tiene equipos en col 278 (ganadores reales de 16avos)
-    // Estrategia 1: quinielaRows — la fila sin nombre de quinielero (col 4 vacío) con equipo en col 278
-    for(const r of quinielaRows){
-      const nombre=r[4]?.trim()||'';
-      const hasOct=_isTN(r[278]);
-      const hasClasif=_isTN(r[233]);
-      if((hasOct||hasClasif) && (!nombre || nombre==='Nombre' || !isNaN(parseInt(r[5]||'')) || nombre.length<3)){
-        // Evitar filas de quinieleros reales: si tiene puntos numéricos en r[5] y nombre largo, es quinielero
-        if(nombre && nombre.length>3 && !isNaN(parseInt(r[5]||''))) continue;
-        realResults=r;
-        console.log('✅ Resultados reales quinielaRows: col233=',r[233],'col278=',r[278]);
+    const isTeam = v => v && v.trim().length > 1 && isNaN(parseInt(v.trim()))
+                     && !['Lg','Nombre','1ro','2do','3ro','R1','R2','R3','Tot','Marc','Gpos','8vos','Dif'].includes(v.trim());
+    for(const r of ctrlRows){
+      // Fila válida: tiene al menos un equipo en el rango JS:KH (cols 278-293)
+      if(isTeam(r[278]) || isTeam(r[279]) || isTeam(r[280])){
+        realResults = r;
+        console.log('✅ realResults: oct0=',r[278],'oct1=',r[279],'oct2=',r[280]);
         break;
       }
     }
-
-    // Estrategia 2: ctrlRows — funciona si TablaControl exporta columnas anchas
-    if(!realResults.length){
-      for(let i=0;i<Math.min(ctrlRows.length,15);i++){
-        const r=ctrlRows[i];
-        if(_isTN(r[278])||_isTN(r[233])){
-          realResults=r;
-          console.log('✅ Resultados reales ctrlRows['+i+']: col233=',r[233],'col278=',r[278]);
-          break;
-        }
-      }
-    }
-
-    // Estrategia 3: buscar por nombre especial conocido ('Resultados','Real','Reales')
+    if(!realResults.length) console.warn('⚠️ Sin realResults en ctrlRows. Buscando en quinielaRows...');
+    // Fallback: buscar en quinielaRows (misma estructura, fila sin col[5] numérico)
     if(!realResults.length){
       for(const r of quinielaRows){
-        const nombre=(r[4]||r[3]||'').trim().toLowerCase();
-        if(nombre.includes('real')||nombre.includes('resultado')){
-          realResults=r;
-          console.log('✅ Resultados reales por nombre especial:',r[4]||r[3]);
+        if(isTeam(r[278]) && !isTeam(r[4])){ // tiene equipo en oct y no tiene nombre en col 4
+          realResults = r;
+          console.log('✅ realResults (quinielaRows): oct0=',r[278]);
           break;
         }
       }
     }
+  } catch(e) { console.warn('Error cargando realResults:', e.message); }
 
-    if(!realResults.length) console.warn('⚠️ Sin resultados reales. quinielaRows:',quinielaRows.length,'ctrlRows:',ctrlRows.length);
-  } catch(e) { console.warn('No se cargaron resultados reales:', e.message); }
+  // ── Cargar eliminados desde pestaña Eliminados col B (índice 1) ──
+  // Esta es la fuente única de verdad para todos los equipos eliminados
+  try {
+    const elimRows = await fetchCSV(GIDS.eliminados);
+    eliminadosSet = new Set();
+    for(const r of elimRows){
+      const nombre = (r[1]||'').trim(); // col B = índice 1
+      if(nombre && nombre.length > 1 && !['Equipo','equipo','B','Eliminados',''].includes(nombre)){
+        eliminadosSet.add(nombre);
+      }
+    }
+    console.log('✅ Eliminados cargados:', eliminadosSet.size, [...eliminadosSet].join(', '));
+  } catch(e) { console.warn('Error cargando eliminados:', e.message); }
 
   document.getElementById('search-t').value=''; // limpiar búsqueda al recargar
   sortDir={col:'tot',asc:false}; // siempre ordenar por total al cargar
@@ -1970,355 +1921,225 @@ function buildTennisDraw(nombre){
   const getT=col=>{const v=row[col]?.trim();return isT(v)?v:null;};
   const rGetT=col=>{const v=realResults[col]?.trim();return isT(v)?v:null;};
 
-  // Clasificados 1ro/2do
+  // ── Fuentes de verdad ─────────────────────────────────────────────
+  // Ganadores reales de 16avos: TablaControl cols JS:KH (índices 278-293)
+  const realOct16 = new Set();
+  for(let i=0;i<16;i++){ const v=rGetT(278+i); if(v) realOct16.add(v); }
+  // Ganadores reales de 8vos (cuartos): cols 295-302
+  const realCto = new Set();
+  for(let i=0;i<8;i++){ const v=rGetT(295+i); if(v) realCto.add(v); }
+  // Ganadores reales de semis: cols 304-307
+  const realSemi = new Set();
+  for(let i=0;i<4;i++){ const v=rGetT(304+i); if(v) realSemi.add(v); }
+  // Finalistas reales: cols 309-310
+  const realFin = new Set();
+  for(let i=0;i<2;i++){ const v=rGetT(309+i); if(v) realFin.add(v); }
+  // Campeón y 3er lugar reales
+  const rChamp=rGetT(313)||'';
+  const rThird=rGetT(312)||'';
+  // Eliminados: fuente única de verdad = pestaña Eliminados col B
+  const elim = eliminadosSet;
+
+  // ── Regla de color y badge ───────────────────────────────────────
+  // Verde + pts : el equipo está en el set de ganadores reales de ESA ronda
+  // Rojo  + +0  : el equipo está en eliminadosSet
+  // Negro       : ni eliminado ni confirmado — sin jugar aún
+  const teamColor = (v, realSet, played) => {
+    if(!v||v==='?'||v==='3ro?') return 'var(--text3)';
+    if(elim.has(v)) return 'var(--rojo)';
+    if(!played) return 'var(--text)';
+    return realSet.has(v) ? 'var(--verde)' : 'var(--rojo)';
+  };
+  const mkBadge = (v, realSet, pts, played) => {
+    if(!v||v==='?') return '';
+    if(elim.has(v)) return '<span style="font-size:8px;color:var(--rojo);font-weight:400;flex-shrink:0">+0</span>';
+    if(played && realSet.has(v)) return '<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+'+pts+'</span>';
+    return '';
+  };
+
+  // ── Bracket del quinielero ────────────────────────────────────────
   let col1ro=[];
   const hdrR=quinielaRows.find(r=>r.some(c=>c&&c.trim()==='1ro'));
   if(hdrR) hdrR.forEach((v,i)=>{if(v&&v.trim()==='1ro')col1ro.push(i);});
   const gL=['A','B','C','D','E','F','G','H','I','J','K','L'];
   const c1={},c2={};
   if(col1ro.length>=12) gL.forEach((g,i)=>{c1[g]=getT(col1ro[i])||'?';c2[g]=getT(col1ro[i]+1)||'?';});
-
-  // Terceros
-  // Terceros: cols 269-276 consecutivas (no cada 3)
   const ter=[]; for(let i=0;i<8;i++) ter.push(getT(269+i)||null);
-  // ter[] es posicional: ter[0]=slot P1, ter[1]=slot P2, ter[2]=slot P7, etc.
-
-  // Bracket data
-  const oct=[]; for(let i=0;i<16;i++) oct.push(getT(278+i)||'');
-  const cto=[]; for(let i=0;i<8;i++)  cto.push(getT(295+i)||'');
-  const semi=[];for(let i=0;i<4;i++)  semi.push(getT(304+i)||'');
+  const t3=(i)=>ter[i]||'3ro?';
+  const oct=[];  for(let i=0;i<16;i++) oct.push(getT(278+i)||'');
+  const cto=[];  for(let i=0;i<8;i++)  cto.push(getT(295+i)||'');
+  const semi=[]; for(let i=0;i<4;i++)  semi.push(getT(304+i)||'');
   const fin=[];  for(let i=0;i<2;i++)  fin.push(getT(309+i)||'');
   const third=getT(312)||''; const champ=getT(313)||'';
-  const rChamp=rGetT(313)||''; const rThird=rGetT(312)||'';
 
-  // Leer resultados REALES para saber qué partidos ya se jugaron
-  // (los colores dependen de resultados reales, no de pronósticos del quinielero)
-  const roct=[]; for(let i=0;i<16;i++) roct.push(rGetT(278+i)||'');
-  const rcto=[]; for(let i=0;i<8;i++)  rcto.push(rGetT(295+i)||'');
-  const rsemi=[];for(let i=0;i<4;i++)  rsemi.push(rGetT(304+i)||'');
-  const rfin=[];  for(let i=0;i<2;i++)  rfin.push(rGetT(309+i)||'');
-  const roct_s =new Set(roct.filter(v=>v));
-  const rcto_s =new Set(rcto.filter(v=>v));
-  const rsemi_s=new Set(rsemi.filter(v=>v));
-  const rfin_s =new Set(rfin.filter(v=>v));
-
-  // Sets para lookup O(1)
-  const oct_s =new Set(oct.filter(v=>v));
-  const cto_s =new Set(cto.filter(v=>v));
-  const semi_s=new Set(semi.filter(v=>v));
-  const fin_s =new Set(fin.filter(v=>v));
-
-  // 16 partidos oficiales
-  // ter[0..7] son los 8 terceros en orden del bracket (directo del sheet)
-  // Posición en el bracket: 0→vs1E, 1→vs1I, 2→vs1D, 3→vs1G, 4→vs1A, 5→vs1L, 6→vs1B, 7→vs1K
-  const t3=(i)=>ter[i]||'3ro?';
+  // 16 partidos de 16avos
   const m16=[
     {a:c1['E'],b:t3(0), lbl:'1E vs 3ro'},
     {a:c1['I'],b:t3(1), lbl:'1I vs 3ro'},
-    {a:c2['A'],b:c2['B'],          lbl:'2A vs 2B'},
-    {a:c1['F'],b:c2['C'],          lbl:'1F vs 2C'},
-    {a:c2['K'],b:c2['L'],          lbl:'2K vs 2L'},
-    {a:c1['H'],b:c2['J'],          lbl:'1H vs 2J'},
+    {a:c2['A'],b:c2['B'],lbl:'2A vs 2B'},
+    {a:c1['F'],b:c2['C'],lbl:'1F vs 2C'},
+    {a:c2['K'],b:c2['L'],lbl:'2K vs 2L'},
+    {a:c1['H'],b:c2['J'],lbl:'1H vs 2J'},
     {a:c1['D'],b:t3(2), lbl:'1D vs 3ro'},
     {a:c1['G'],b:t3(3), lbl:'1G vs 3ro'},
-    {a:c1['C'],b:c2['F'],          lbl:'1C vs 2F'},
-    {a:c2['E'],b:c2['I'],          lbl:'2E vs 2I'},
+    {a:c1['C'],b:c2['F'],lbl:'1C vs 2F'},
+    {a:c2['E'],b:c2['I'],lbl:'2E vs 2I'},
     {a:c1['A'],b:t3(4), lbl:'1A vs 3ro'},
     {a:c1['L'],b:t3(5), lbl:'1L vs 3ro'},
-    {a:c1['J'],b:c2['H'],          lbl:'1J vs 2H'},
-    {a:c2['D'],b:c2['G'],          lbl:'2D vs 2G'},
+    {a:c1['J'],b:c2['H'],lbl:'1J vs 2H'},
+    {a:c2['D'],b:c2['G'],lbl:'2D vs 2G'},
     {a:c1['B'],b:t3(6), lbl:'1B vs 3ro'},
     {a:c1['K'],b:t3(7), lbl:'1K vs 3ro'},
   ];
 
-  // Ganador pronosticado de cada partido de 16vos = oct[i]
-  // Ganador de octavos = cto[i/2], etc.
+  // ¿Rondas con resultados?
+  const oct16Played = realOct16.size > 0;
+  const ctoPlayed   = realCto.size  > 0;
+  const semiPlayed  = realSemi.size  > 0;
+  const finPlayed   = realFin.size   > 0;
+  const champPlayed = rChamp !== '';
 
-  // ── Color de equipo ───────────────────────────────────────────────
-  // Blanco=pendiente, Verde=avanzó, Rojo=eliminado
-  const adv_oct =new Set(oct.filter(v=>v));
-  const adv_cto =new Set(cto.filter(v=>v));
-  const adv_semi=new Set(semi.filter(v=>v));
-  const adv_fin =new Set(fin.filter(v=>v));
-  const adv_chmp=new Set([champ,third].filter(v=>v));
-
-  // Eliminados globales: rojo en TODOS los niveles
-  const globalElim=new Set();
-  const rctoPlayed=rcto_s.size>0;
-  const rsemiPlayed=rsemi_s.size>0;
-  const rfinPlayed=rfin_s.size>0;
-  const rchampPlayed=rChamp!=='';
-
-  // Perdedores de 16avos: agregar individualmente por partido jugado (no esperar a cuartos)
-  roct.forEach((ganador,i)=>{ if(ganador){ const perdedor=m16[i].a===ganador?m16[i].b:m16[i].a; if(perdedor&&perdedor!=='?'&&perdedor!=='3ro?') globalElim.add(perdedor); } });
-  // Si 8vos reales ya se jugaron: los que pasaron de 16vos pero no ganaron su partido de 8vos → eliminados
-  if(rctoPlayed) roct.forEach(v=>{ if(v&&!rcto_s.has(v)) globalElim.add(v); });
-  // Si cuartos reales ya se jugaron: los que pasaron de 8vos pero no ganaron cuartos → eliminados
-  if(rsemiPlayed) rcto.forEach(v=>{ if(v&&!rsemi_s.has(v)) globalElim.add(v); });
-  // Si semis reales ya se jugaron: los que pasaron de cuartos pero no ganaron semis → eliminados
-  if(rfinPlayed)  rsemi.forEach(v=>{ if(v&&!rfin_s.has(v)) globalElim.add(v); });
-  // Si la final ya se jugó: el finalista que no fue campeón ni 3er lugar → eliminado (perdió la final)
-  if(rchampPlayed) rfin.forEach(v=>{ if(v&&v!==rChamp&&v!==rThird) globalElim.add(v); });
-  // Equipos eliminados en fase de grupos (del set global ELIMINADOS)
-  if(typeof ELIMINADOS!=='undefined') ELIMINADOS.forEach(v=>globalElim.add(v));
-
-  // Puntos por ronda
-  const PTS_ROUND={r16:4,r8:6,r4:8,semi:10,fin:12,ter:5};
-
-  // Color + label de pts ganados/disponibles
-  const tc=(v,advSet,roundHasResult,ptsLabel='')=>{
-    if(!v||v==='?'||v==='3ro?') return 'var(--text3)';
-    if(globalElim.has(v)) return 'var(--rojo)';
-    if(!roundHasResult) return 'var(--text)';
-    return advSet.has(v)?'var(--verde)':'var(--rojo)';
-  };
-
-
-  // ── Celdas de equipo ──────────────────────────────────────────────
-  const EH=24; // altura de cada celda de equipo en px
-  const cellStyle=(v,color)=>
-    `style="padding:3px 8px;height:${EH}px;vertical-align:middle;font-size:10px;color:${color};font-weight:${color==='var(--verde)'?'600':'400'};white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;border:none"`;
-  
-  // Celda de equipo simple
-  const teamCell=(v,advSet,roundHasResult,extra='')=>
-    `<td ${cellStyle(v,tc(v,advSet,roundHasResult))}${extra}>${v||'—'}</td>`;
-
-  // Celda con borde de partido (envuelve 2 equipos en una "caja")
-  // Usamos ::before tricks via inline → en su lugar usamos border en tr
-
-  // ── Estructura con rowspan ────────────────────────────────────────
-  // La tabla tiene 32 filas (2 por cada partido de 16vos)
-  // Cada 2 filas forman un "partido" con borde visual
-  // 
-  // Col 1: partido de 16vos (1 equipo por fila, 2 filas = 1 partido)
-  // Col 2: espacio conector
-  // Col 3: octavos (rowspan=2, centrado entre sus 2 partidos de 16vos)
-  // Col 4: espacio conector  
-  // Col 5: cuartos (rowspan=4)
-  // etc.
-  //
-  // Cada "par de partidos" (2 partidos de 16vos → 1 de 8vos) tiene 4 filas
-  // Cada "grupo de 4" (4 partidos 16vos → 2 oct → 1 cto) tiene 8 filas
-  // etc.
-
-  // Separador visual entre ramas: fila vacía cada 4 filas (entre pares)
-  // Total: 16 partidos × 2 filas = 32 filas de datos + 7 separadores = 39 filas
-
-  // Construir las 32 filas
-  // Para cada fila (0..31):
-  //   fila f corresponde al partido p16 = floor(f/2), equipo = f%2
-  //   El partido de octavos correspondiente = floor(p16/2), aparece en filas f=1,2 del par (rowspan=2, primera fila del par)
-  //   El partido de cuartos = floor(p16/4), aparece en filas f=2,3,4,5 del grupo (rowspan=4, primera fila del grupo)
-  //   etc.
-
+  const EH=24;
   const rows=[];
-  let octInserted=new Set(), ctoInserted=new Set(), semiInserted=new Set(), finInserted=false, champInserted=false;
 
   for(let f=0;f<32;f++){
-    const p16=Math.floor(f/2);   // índice del partido de 16vos (0..15)
-    const eq=f%2;                  // 0=primer equipo, 1=segundo equipo
-    const oct_i=Math.floor(p16/2); // índice del partido de 8vos (0..7)
-    const cto_i=Math.floor(p16/4); // índice de cuartos (0..3)
-    const semi_i=Math.floor(p16/8);// índice de semis (0..1)
-    const isFirstInOct = (p16%2===0 && eq===0); // primera celda del par de 16vos
-    const isFirstInCto = (p16%4===0 && eq===0);
-    const isFirstInSemi= (p16%8===0 && eq===0);
-    const isFirstInFin = (p16===0   && eq===0);
-
+    const p16=Math.floor(f/2);
+    const eq=f%2;
+    const oct_i=Math.floor(p16/2);
+    const cto_i=Math.floor(p16/4);
+    const semi_i=Math.floor(p16/8);
+    const isFirstInOct=(p16%2===0&&eq===0);
+    const isFirstInCto=(p16%4===0&&eq===0);
+    const isFirstInSemi=(p16%8===0&&eq===0);
+    const isFirstInFin=(p16===0&&eq===0);
+    const isLastInPair=(p16%2===1&&eq===1);
     const m=m16[p16];
     const v=eq===0?m.a:m.b;
+    const borderBottom=isLastInPair&&p16<15?'2px solid var(--bg4)':'1px solid var(--border)';
 
-    // Color de 16vos: basado en resultados REALES
-    // Si hay resultado real → verde=ganó, rojo=perdió
-    // Si no hay resultado real → blanco (no jugado)
-    const p16Played=roct[p16]!=='';  // partido jugado REALMENTE
-    const realWinner16=roct[p16]||'';
-    const predWinner16=oct[p16]||''; // ganador predicho por el quinielero
-    let c16;
-    if(globalElim.has(v)){
-      c16='var(--rojo)'; // eliminado en grupos o ronda anterior
-    } else if(!p16Played){
-      c16='var(--text)'; // partido no jugado aún → color normal (neutro)
-    } else if(v===realWinner16){
-      c16='var(--verde)'; // ganó en realidad → verde
-    } else {
-      c16='var(--rojo)'; // perdió en realidad → rojo
-    }
-    const isAdv16=(p16Played && v===realWinner16); // ganó REALMENTE
-    // Badge +4: ganó realmente Y el quinielero lo tenía en cualquiera de sus 16 slots
-    const predInOct16 = oct_s.has(v);
-
-    // Separador visual entre ramas (cada 4 filas = cada par de partidos de 16vos)
-    const isLastInPair=(p16%2===1 && eq===1);
-    const borderBottom = isLastInPair && p16<15 ? '2px solid var(--bg4)' : '1px solid var(--border)';
-
+    // Celda 16avos
+    const c16=teamColor(v, realOct16, oct16Played);
+    const b16=mkBadge(v, realOct16, 4, oct16Played);
     let tds=`<tr>`;
-    // Nombre del partido (solo en primera fila del partido)
-    if(eq===0){
-      tds+=`<td rowspan="2" style="padding:0 4px;font-size:7px;color:var(--text2);vertical-align:middle;text-align:right;white-space:nowrap;border:none">${m.lbl}</td>`;
-    }
-    // Equipo de 16vos
-    // isAdv16 now defined above
+    if(eq===0) tds+=`<td rowspan="2" style="padding:0 4px;font-size:7px;color:var(--text2);vertical-align:middle;text-align:right;white-space:nowrap;border:none">${m.lbl}</td>`;
     tds+=`<td style="padding:0 6px;height:${EH}px;vertical-align:middle;background:var(--bg3);border:1px solid var(--border);border-bottom:${borderBottom}">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
         <span style="font-size:10px;color:${c16};font-weight:${c16==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px">${v||'—'}</span>
-        ${isAdv16?(predInOct16?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+4</span>':'<span style="font-size:8px;color:var(--verde);font-weight:400;flex-shrink:0">+0</span>'):''}
+        ${b16}
       </div>
     </td>`;
+    if(eq===0) tds+=`<td rowspan="2" style="width:16px;border:none;background:none"></td>`;
 
-    // Conector 16→8 (pequeña celda de espaciado)
-    if(eq===0){
-      tds+=`<td rowspan="2" style="width:16px;border:none;background:none"></td>`;
-    }
-
-    // Octavos (rowspan=2, aparece en la primera fila del par)
+    // Celda Octavos
     if(isFirstInOct){
       const oa=oct[p16]||'?', ob=oct[p16+1]||'?';
-      const p8j=rcto[oct_i]!==''; // partido de 8vos jugado REALMENTE
-      const radv8=new Set([rcto[oct_i]].filter(x=>x));
-      // Color: verde=ganó realmente, rojo=perdió/eliminado, blanco=no jugado
-      const ca=globalElim.has(oa)?'var(--rojo)':!p8j?'var(--text)':radv8.has(oa)?'var(--verde)':'var(--rojo)';
-      const cb=globalElim.has(ob)?'var(--rojo)':!p8j?'var(--text)':radv8.has(ob)?'var(--verde)':'var(--rojo)';
-      const adv8=radv8;
+      const ca=teamColor(oa,realCto,ctoPlayed), cb=teamColor(ob,realCto,ctoPlayed);
+      const ba=mkBadge(oa,realCto,6,ctoPlayed), bb=mkBadge(ob,realCto,6,ctoPlayed);
       tds+=`<td rowspan="4" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*4}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
-              <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${oa||'—'}</span>
-              ${(p8j&&rcto_s.has(oa)&&cto_s.has(oa))?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
+              <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${oa}</span>${ba}
             </div>
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
-              <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${ob||'—'}</span>
-              ${(p8j&&rcto_s.has(ob)&&cto_s.has(ob))?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+6</span>':''}
+              <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${ob}</span>${bb}
             </div>
           </div>
         </div>
-      </td>`;
-      tds+=`<td rowspan="4" style="width:16px;border:none"></td>`;
+      </td><td rowspan="4" style="width:16px;border:none"></td>`;
     }
 
-    // Cuartos (rowspan=8)
+    // Celda Cuartos
     if(isFirstInCto){
       const ca_t=cto[cto_i*2]||'?', cb_t=cto[cto_i*2+1]||'?';
-      const p4j=rsemi[cto_i]!==''; // cuartos jugado realmente
-      const radv4=new Set([rsemi[cto_i]].filter(x=>x));
-      const ca=globalElim.has(ca_t)?'var(--rojo)':!p4j?'var(--text)':radv4.has(ca_t)?'var(--verde)':'var(--rojo)';
-      const cb=globalElim.has(cb_t)?'var(--rojo)':!p4j?'var(--text)':radv4.has(cb_t)?'var(--verde)':'var(--rojo)';
-      const adv4=radv4;
+      const ca=teamColor(ca_t,realSemi,semiPlayed), cb=teamColor(cb_t,realSemi,semiPlayed);
+      const ba=mkBadge(ca_t,realSemi,8,semiPlayed), bb=mkBadge(cb_t,realSemi,8,semiPlayed);
       tds+=`<td rowspan="8" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*8}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
-              <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${ca_t||'—'}</span>
-              ${p4j&&adv4.has(ca_t)&&semi_s.has(ca_t)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+8</span>':''}
+              <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${ca_t}</span>${ba}
             </div>
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
-              <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${cb_t||'—'}</span>
-              ${p4j&&adv4.has(cb_t)&&semi_s.has(cb_t)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+8</span>':''}
+              <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${cb_t}</span>${bb}
             </div>
           </div>
         </div>
-      </td>`;
-      tds+=`<td rowspan="8" style="width:16px;border:none"></td>`;
+      </td><td rowspan="8" style="width:16px;border:none"></td>`;
     }
 
-    // Semis (rowspan=16)
+    // Celda Semis
     if(isFirstInSemi){
       const sa=semi[semi_i*2]||'?', sb=semi[semi_i*2+1]||'?';
-      const psj=rfin[semi_i]!==''; // semis jugado realmente
-      const radvS=new Set([rfin[semi_i]].filter(x=>x));
-      const ca=globalElim.has(sa)?'var(--rojo)':!psj?'var(--text)':radvS.has(sa)?'var(--verde)':'var(--rojo)';
-      const cb=globalElim.has(sb)?'var(--rojo)':!psj?'var(--text)':radvS.has(sb)?'var(--verde)':'var(--rojo)';
-      const advS=radvS;
+      const ca=teamColor(sa,realFin,finPlayed), cb=teamColor(sb,realFin,finPlayed);
+      const ba=mkBadge(sa,realFin,10,finPlayed), bb=mkBadge(sb,realFin,10,finPlayed);
       tds+=`<td rowspan="16" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*16}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
-              <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${sa||'—'}</span>
-              ${psj&&advS.has(sa)&&fin_s.has(sa)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+10</span>':''}
+              <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${sa}</span>${ba}
             </div>
             <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
-              <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${sb||'—'}</span>
-              ${psj&&advS.has(sb)&&fin_s.has(sb)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+10</span>':''}
+              <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${sb}</span>${bb}
             </div>
           </div>
         </div>
-      </td>`;
-      tds+=`<td rowspan="16" style="width:16px;border:none"></td>`;
+      </td><td rowspan="16" style="width:16px;border:none"></td>`;
     }
 
-    // Final (rowspan=32)
+    // Celda Final + Campeón
     if(isFirstInFin){
       const fa=fin[0]||'?', fb=fin[1]||'?';
-      const fj=rChamp!==''; // final jugada realmente
-      const rfAdv=new Set([rChamp].filter(x=>x));
-      const ca=globalElim.has(fa)?'var(--rojo)':!fj?'var(--text)':rfAdv.has(fa)?'var(--verde)':'var(--rojo)';
-      const cb=globalElim.has(fb)?'var(--rojo)':!fj?'var(--text)':rfAdv.has(fb)?'var(--verde)':'var(--rojo)';
-      const fAdv=rfAdv;
+      const realChampSet=new Set([rChamp].filter(v=>v));
+      const ca=teamColor(fa,realChampSet,champPlayed), cb=teamColor(fb,realChampSet,champPlayed);
+      const ba=mkBadge(fa,realChampSet,12,champPlayed), bb=mkBadge(fb,realChampSet,12,champPlayed);
       tds+=`<td rowspan="32" style="vertical-align:middle;border:none;padding:0 4px">
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
           <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
-            <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${fa||'—'}</span>
-            ${fj&&fAdv.has(fa)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+12</span>':''}
+            <span style="font-size:10px;color:${ca};font-weight:${ca==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${fa}</span>${ba}
           </div>
           <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${fb||'—'}</span>
-            ${fj&&fAdv.has(fb)?'<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+12</span>':''}
+            <span style="font-size:10px;color:${cb};font-weight:${cb==='var(--verde)'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${fb}</span>${bb}
           </div>
         </div>
-      </td>`;
-      tds+=`<td rowspan="32" style="width:12px;border:none"></td>`;
+      </td><td rowspan="32" style="width:12px;border:none"></td>`;
       // Campeón y 3er lugar
-      const champOk=rChamp!=='', thirdOk=rThird!=='';
+      const champColor=elim.has(champ)?'var(--rojo)':champPlayed&&rChamp===champ?'var(--verde)':'var(--dorado)';
+      const thirdColor=elim.has(third)?'var(--rojo)':champPlayed&&rThird===third?'var(--verde)':'#CD7F32';
       tds+=`<td rowspan="32" style="vertical-align:middle;border:none;padding:0 4px;min-width:108px">
         <div style="margin-bottom:8px;text-align:center;padding:8px 6px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:7px">
           <div style="font-size:9px;color:var(--text2);font-weight:600">🏆 CAMPEÓN</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${champOk&&rChamp===champ?'var(--verde)':'var(--dorado)'};margin-top:2px">${champ||'TBD'}</div>
-          ${champOk?`<div style="font-size:8px;color:${rChamp===champ?'var(--verde)':'var(--rojo)'};font-weight:${rChamp===champ?'700':'400'}">${rChamp===champ?'⭐ +12 Correcto':'✗ '+rChamp}</div>`:''}
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${champColor};margin-top:2px">${champ||'TBD'}</div>
+          ${champPlayed?`<div style="font-size:8px;color:${rChamp===champ?'var(--verde)':'var(--rojo)'};font-weight:${rChamp===champ?'700':'400'}">${rChamp===champ?'⭐ +12 Correcto':'✗ '+rChamp}</div>`:''}
         </div>
         <div style="text-align:center;padding:6px;background:rgba(205,127,50,.06);border:1px solid rgba(205,127,50,.28);border-radius:7px">
           <div style="font-size:9px;color:var(--text2);font-weight:600">🥉 3ER LUGAR</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:${thirdOk&&rThird===third?'var(--verde)':'#CD7F32'};margin-top:1px">${third||'TBD'}</div>
-          ${thirdOk?`<div style="font-size:8px;color:${rThird===third?'var(--verde)':'var(--rojo)'};font-weight:${rThird===third?'700':'400'}">${rThird===third?'✓ +5 Correcto':'✗ '+rThird}</div>`:''}
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:${thirdColor};margin-top:1px">${third||'TBD'}</div>
+          ${champPlayed?`<div style="font-size:8px;color:${rThird===third?'var(--verde)':'var(--rojo)'};font-weight:${rThird===third?'700':'400'}">${rThird===third?'✓ +5 Correcto':'✗ '+rThird}</div>`:''}
         </div>
       </td>`;
     }
 
     tds+=`</tr>`;
     rows.push(tds);
-
-    // Fila separadora entre pares de partidos (entre ramas)
-    if(isLastInPair && p16<14){
-      rows.push(`<tr style="height:6px"><td colspan="12" style="border:none;background:transparent"></td></tr>`);
-    }
+    if(isLastInPair&&p16<14) rows.push(`<tr style="height:6px"><td colspan="12" style="border:none;background:transparent"></td></tr>`);
   }
 
-  // Headers de columna
   const RH='padding:4px 6px 6px;font-size:8px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);font-weight:700;text-align:center;background:var(--bg2);border-bottom:2px solid var(--border)';
   const hdr=`<tr>
-    <td style="${RH}">Partido</td>
-    <td style="${RH}">16avos</td>
-    <td style="border:none;background:var(--bg2)"></td>
-    <td style="${RH}">Octavos</td>
-    <td style="border:none;background:var(--bg2)"></td>
-    <td style="${RH}">Cuartos</td>
-    <td style="border:none;background:var(--bg2)"></td>
-    <td style="${RH}">Semis</td>
-    <td style="border:none;background:var(--bg2)"></td>
-    <td style="${RH}">Final</td>
-    <td style="border:none;background:var(--bg2)"></td>
-    <td style="${RH}">🏆</td>
+    <td style="${RH}">Partido</td><td style="${RH}">16avos</td>
+    <td style="border:none;background:var(--bg2)"></td><td style="${RH}">Octavos</td>
+    <td style="border:none;background:var(--bg2)"></td><td style="${RH}">Cuartos</td>
+    <td style="border:none;background:var(--bg2)"></td><td style="${RH}">Semis</td>
+    <td style="border:none;background:var(--bg2)"></td><td style="${RH}">Final</td>
+    <td style="border:none;background:var(--bg2)"></td><td style="${RH}">🏆</td>
   </tr>`;
-
   return `<div style="overflow-x:auto;padding-bottom:8px">
     <table style="border-collapse:separate;border-spacing:0;white-space:nowrap;background:var(--bg2)">
-      <thead>${hdr}</thead>
-      <tbody>${rows.join('')}</tbody>
+      <thead>${hdr}</thead><tbody>${rows.join('')}</tbody>
     </table>
   </div>`;
-  } catch(e) {
-    return '<p style="color:red;padding:20px">Error en bracket: '+e.message+'</p>';
-  }
+  } catch(e){ return '<p style="color:red;padding:20px">Error en bracket: '+e.message+'</p>'; }
 }
 
 // ══════════════════════════════════════════════
@@ -2379,7 +2200,7 @@ function buildEliminados(){
     col+=18;
   });
 
-  // Lista de equipos eliminados (están en ELIMINADOS set o no aparecen en clasificados reales)
+  // Lista de equipos eliminados (están en eliminadosSet o no aparecen en clasificados reales)
   const realClasif=new Set();
   let col2=233;
   for(let i=0;i<12;i++){
@@ -2390,7 +2211,7 @@ function buildEliminados(){
 
   // Equipos conocidos que no clasificaron (todos los del torneo menos los clasificados)
   const allTeams=new Set(Object.values(GRUPOS_INFO).flatMap(g=>g.teams));
-  const eliminados=[...allTeams].filter(t=>!realClasif.has(t)||ELIMINADOS.has(t));
+  const eliminados=[...allTeams].filter(t=>eliminadosSet.has(t)||!realClasif.has(t));
   
   if(!eliminados.length&&!Object.keys(counts).length){
     document.getElementById('eliminados-cont').innerHTML='<div class="empty"><p>Aún no hay equipos eliminados.</p></div>';return;
@@ -2409,7 +2230,7 @@ function buildEliminados(){
     fin:counts[t]?.fin||0,
     ter:counts[t]?.ter||0,
     champ:counts[t]?.champ||0,
-    elim:ELIMINADOS.has(t)||(!realClasif.has(t)&&teamStats[t]?.pj>0),
+    elim:eliminadosSet.has(t)||(!realClasif.has(t)&&teamStats[t]?.pj>0),
   })).sort((a,b)=>b.pts-a.pts||b.dg-a.dg);
 
   document.getElementById('eliminados-cont').innerHTML=`
