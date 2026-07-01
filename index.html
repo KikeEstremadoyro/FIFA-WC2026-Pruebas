@@ -400,45 +400,72 @@ async function loadAll() {
     try { quinielaRows=await fetchCSV(GIDS.control); } catch(e2) {}
   }
 
-  // ── Cargar ganadores reales de 16avos desde TablaControl (cols JS:KH = índices 278-293) ──
-  // La fila con datos reales es la que tiene nombres de equipo en esas columnas (no números)
+  // ── Cargar ganadores reales de 16avos desde Quinielas2026 (cols JS:KH = índices 278-293) ──
+  // La fila de resultados reales en Quinielas2026: tiene equipos en col 278+ y col[5] vacío/no-numérico
+  // (los quinieleros normales tienen puntos numéricos en col[5]=R1)
   try {
     const ctrlRows = await fetchCSV(GIDS.control);
-    const isTeam = v => v && v.trim().length > 1 && isNaN(parseInt(v.trim()))
-                     && !['Lg','Nombre','1ro','2do','3ro','R1','R2','R3','Tot','Marc','Gpos','8vos','Dif'].includes(v.trim());
-    for(const r of ctrlRows){
-      // Fila válida: tiene al menos un equipo en el rango JS:KH (cols 278-293)
-      if(isTeam(r[278]) || isTeam(r[279]) || isTeam(r[280])){
+    const isTeam = v => {
+      if(!v) return false;
+      const t = v.trim();
+      return t.length > 1 && isNaN(parseInt(t))
+          && !['Lg','Nombre','1ro','2do','3ro','R1','R2','R3','Tot','Marc','Gpos','8vos','Dif','Grupo'].includes(t);
+    };
+
+    // Estrategia A: buscar en quinielaRows — fila con equipo en col 278 y sin puntos en col 5
+    for(const r of quinielaRows){
+      const r5 = (r[5]||'').trim();
+      const hasOct = isTeam(r[278]);
+      const noPoints = !r5 || isNaN(parseInt(r5)) || parseInt(r5) === 0;
+      if(hasOct && noPoints){
         realResults = r;
-        console.log('✅ realResults: oct0=',r[278],'oct1=',r[279],'oct2=',r[280]);
+        console.log('✅ realResults (quinielaRows): col278=',r[278],'col279=',r[279],'col280=',r[280]);
         break;
       }
     }
-    if(!realResults.length) console.warn('⚠️ Sin realResults en ctrlRows. Buscando en quinielaRows...');
-    // Fallback: buscar en quinielaRows (misma estructura, fila sin col[5] numérico)
+
+    // Estrategia B: buscar en ctrlRows por equipo en col 278 (funciona si TablaControl exporta cols anchas)
     if(!realResults.length){
-      for(const r of quinielaRows){
-        if(isTeam(r[278]) && !isTeam(r[4])){ // tiene equipo en oct y no tiene nombre en col 4
+      for(const r of ctrlRows){
+        if(isTeam(r[278]) || isTeam(r[279])){
           realResults = r;
-          console.log('✅ realResults (quinielaRows): oct0=',r[278]);
+          console.log('✅ realResults (ctrlRows): col278=',r[278]);
           break;
         }
       }
     }
+
+    // Estrategia C: buscar en quinielaRows por col 233 (clasificados de grupos — datos más abundantes)
+    if(!realResults.length){
+      for(const r of quinielaRows){
+        const r5 = (r[5]||'').trim();
+        const hasClasif = isTeam(r[233]);
+        const noPoints = !r5 || isNaN(parseInt(r5)) || parseInt(r5) === 0;
+        if(hasClasif && noPoints){
+          realResults = r;
+          console.log('✅ realResults (quinielaRows col233): col233=',r[233],'col278=',r[278]);
+          break;
+        }
+      }
+    }
+
+    if(!realResults.length) console.warn('⚠️ Sin realResults. quinielaRows.length=',quinielaRows.length,'ctrlRows.length=',ctrlRows.length);
+    else console.log('realResults oct ganadores:', Array.from({length:16},(_,i)=>realResults[278+i]).filter(Boolean));
   } catch(e) { console.warn('Error cargando realResults:', e.message); }
 
   // ── Cargar eliminados desde pestaña Eliminados col B (índice 1) ──
-  // Esta es la fuente única de verdad para todos los equipos eliminados
+  // Fuente única de verdad para todos los equipos eliminados
   try {
     const elimRows = await fetchCSV(GIDS.eliminados);
     eliminadosSet = new Set();
+    const skipWords = new Set(['equipo','eliminados','nombre','team','b','#']);
     for(const r of elimRows){
       const nombre = (r[1]||'').trim(); // col B = índice 1
-      if(nombre && nombre.length > 1 && !['Equipo','equipo','B','Eliminados',''].includes(nombre)){
+      if(nombre && nombre.length > 1 && !skipWords.has(nombre.toLowerCase())){
         eliminadosSet.add(nombre);
       }
     }
-    console.log('✅ Eliminados cargados:', eliminadosSet.size, [...eliminadosSet].join(', '));
+    console.log('✅ Eliminados cargados:', eliminadosSet.size, [...eliminadosSet].join(' | '));
   } catch(e) { console.warn('Error cargando eliminados:', e.message); }
 
   document.getElementById('search-t').value=''; // limpiar búsqueda al recargar
@@ -1904,6 +1931,15 @@ function showBracket(nombre){
       <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--dorado)">${nombre}</span>
     </div>
     ${pstB}
+    <details style="margin-bottom:8px;font-size:10px;color:var(--text3)">
+      <summary style="cursor:pointer;user-select:none">🔍 Diagnóstico de datos</summary>
+      <div style="margin-top:4px;padding:6px 10px;background:var(--bg3);border-radius:6px;font-family:monospace;font-size:9px;line-height:1.7">
+        <b>realResults cargado:</b> ${realResults.length ? '✅ sí (' + realResults.length + ' cols)' : '❌ NO — bracket no tendrá colores reales'}<br>
+        <b>Ganadores 16avos (col 278-293):</b> ${Array.from({length:16},(_,i)=>realResults[278+i]).filter(Boolean).join(', ')||'ninguno'}<br>
+        <b>Eliminados cargados:</b> ${eliminadosSet.size} equipos<br>
+        <b>Lista eliminados:</b> ${[...eliminadosSet].join(', ')||'vacío'}
+      </div>
+    </details>
     ${buildTennisDraw(nombre)}`;
   } catch(e) {
     console.error('showBracket error:', e);
@@ -1937,23 +1973,41 @@ function buildTennisDraw(nombre){
   // Campeón y 3er lugar reales
   const rChamp=rGetT(313)||'';
   const rThird=rGetT(312)||'';
-  // Eliminados: fuente única de verdad = pestaña Eliminados col B
-  const elim = eliminadosSet;
+
+  // Normalizar nombre para comparación tolerante (quita tildes, lowercase, trim)
+  const norm = s => (s||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+  // Eliminados: set normalizado para match tolerante
+  const elimNorm = new Set([...eliminadosSet].map(norm));
+  const isElim = v => elimNorm.has(norm(v));
+
+  // Sets normalizados de resultados reales
+  const normSet = s => new Set([...s].map(norm));
+  const realOct16N = normSet(realOct16);
+  const realCtoN   = normSet(realCto);
+  const realSemiN  = normSet(realSemi);
+  const realFinN   = normSet(realFin);
+  const rChampN    = norm(rChamp);
+  const rThirdN    = norm(rThird);
+
+  // Log de diagnóstico
+  console.log('🔍 Bracket',nombre,'| realOct16:',[...realOct16].join(','),'| elim:',[...eliminadosSet].join(','));
 
   // ── Regla de color y badge ───────────────────────────────────────
   // Verde + pts : el equipo está en el set de ganadores reales de ESA ronda
   // Rojo  + +0  : el equipo está en eliminadosSet
   // Negro       : ni eliminado ni confirmado — sin jugar aún
-  const teamColor = (v, realSet, played) => {
+  const teamColor = (v, realSetN, played) => {
     if(!v||v==='?'||v==='3ro?') return 'var(--text3)';
-    if(elim.has(v)) return 'var(--rojo)';
+    if(isElim(v)) return 'var(--rojo)';
     if(!played) return 'var(--text)';
-    return realSet.has(v) ? 'var(--verde)' : 'var(--rojo)';
+    return realSetN.has(norm(v)) ? 'var(--verde)' : 'var(--rojo)';
   };
-  const mkBadge = (v, realSet, pts, played) => {
+  const mkBadge = (v, realSetN, pts, played) => {
     if(!v||v==='?') return '';
-    if(elim.has(v)) return '<span style="font-size:8px;color:var(--rojo);font-weight:400;flex-shrink:0">+0</span>';
-    if(played && realSet.has(v)) return '<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+'+pts+'</span>';
+    if(isElim(v)) return '<span style="font-size:8px;color:var(--rojo);font-weight:400;flex-shrink:0">+0</span>';
+    if(played && realSetN.has(norm(v))) return '<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+'+pts+'</span>';
     return '';
   };
 
@@ -2018,8 +2072,8 @@ function buildTennisDraw(nombre){
     const borderBottom=isLastInPair&&p16<15?'2px solid var(--bg4)':'1px solid var(--border)';
 
     // Celda 16avos
-    const c16=teamColor(v, realOct16, oct16Played);
-    const b16=mkBadge(v, realOct16, 4, oct16Played);
+    const c16=teamColor(v, realOct16N, oct16Played);
+    const b16=mkBadge(v, realOct16N, 4, oct16Played);
     let tds=`<tr>`;
     if(eq===0) tds+=`<td rowspan="2" style="padding:0 4px;font-size:7px;color:var(--text2);vertical-align:middle;text-align:right;white-space:nowrap;border:none">${m.lbl}</td>`;
     tds+=`<td style="padding:0 6px;height:${EH}px;vertical-align:middle;background:var(--bg3);border:1px solid var(--border);border-bottom:${borderBottom}">
@@ -2033,8 +2087,8 @@ function buildTennisDraw(nombre){
     // Celda Octavos
     if(isFirstInOct){
       const oa=oct[p16]||'?', ob=oct[p16+1]||'?';
-      const ca=teamColor(oa,realCto,ctoPlayed), cb=teamColor(ob,realCto,ctoPlayed);
-      const ba=mkBadge(oa,realCto,6,ctoPlayed), bb=mkBadge(ob,realCto,6,ctoPlayed);
+      const ca=teamColor(oa,realCtoN,ctoPlayed), cb=teamColor(ob,realCtoN,ctoPlayed);
+      const ba=mkBadge(oa,realCtoN,6,ctoPlayed), bb=mkBadge(ob,realCtoN,6,ctoPlayed);
       tds+=`<td rowspan="4" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*4}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2052,8 +2106,8 @@ function buildTennisDraw(nombre){
     // Celda Cuartos
     if(isFirstInCto){
       const ca_t=cto[cto_i*2]||'?', cb_t=cto[cto_i*2+1]||'?';
-      const ca=teamColor(ca_t,realSemi,semiPlayed), cb=teamColor(cb_t,realSemi,semiPlayed);
-      const ba=mkBadge(ca_t,realSemi,8,semiPlayed), bb=mkBadge(cb_t,realSemi,8,semiPlayed);
+      const ca=teamColor(ca_t,realSemiN,semiPlayed), cb=teamColor(cb_t,realSemiN,semiPlayed);
+      const ba=mkBadge(ca_t,realSemiN,8,semiPlayed), bb=mkBadge(cb_t,realSemiN,8,semiPlayed);
       tds+=`<td rowspan="8" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*8}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2071,8 +2125,8 @@ function buildTennisDraw(nombre){
     // Celda Semis
     if(isFirstInSemi){
       const sa=semi[semi_i*2]||'?', sb=semi[semi_i*2+1]||'?';
-      const ca=teamColor(sa,realFin,finPlayed), cb=teamColor(sb,realFin,finPlayed);
-      const ba=mkBadge(sa,realFin,10,finPlayed), bb=mkBadge(sb,realFin,10,finPlayed);
+      const ca=teamColor(sa,realFinN,finPlayed), cb=teamColor(sb,realFinN,finPlayed);
+      const ba=mkBadge(sa,realFinN,10,finPlayed), bb=mkBadge(sb,realFinN,10,finPlayed);
       tds+=`<td rowspan="16" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*16}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2090,9 +2144,9 @@ function buildTennisDraw(nombre){
     // Celda Final + Campeón
     if(isFirstInFin){
       const fa=fin[0]||'?', fb=fin[1]||'?';
-      const realChampSet=new Set([rChamp].filter(v=>v));
-      const ca=teamColor(fa,realChampSet,champPlayed), cb=teamColor(fb,realChampSet,champPlayed);
-      const ba=mkBadge(fa,realChampSet,12,champPlayed), bb=mkBadge(fb,realChampSet,12,champPlayed);
+      const realChampSetN=new Set([norm(rChamp)].filter(v=>v));
+      const ca=teamColor(fa,realChampSetN,champPlayed), cb=teamColor(fb,realChampSetN,champPlayed);
+      const ba=mkBadge(fa,realChampSetN,12,champPlayed), bb=mkBadge(fb,realChampSetN,12,champPlayed);
       tds+=`<td rowspan="32" style="vertical-align:middle;border:none;padding:0 4px">
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
           <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
@@ -2104,18 +2158,18 @@ function buildTennisDraw(nombre){
         </div>
       </td><td rowspan="32" style="width:12px;border:none"></td>`;
       // Campeón y 3er lugar
-      const champColor=elim.has(champ)?'var(--rojo)':champPlayed&&rChamp===champ?'var(--verde)':'var(--dorado)';
-      const thirdColor=elim.has(third)?'var(--rojo)':champPlayed&&rThird===third?'var(--verde)':'#CD7F32';
+      const champColor=isElim(champ)?'var(--rojo)':champPlayed&&norm(rChamp)===norm(champ)?'var(--verde)':'var(--dorado)';
+      const thirdColor=isElim(third)?'var(--rojo)':champPlayed&&norm(rThird)===norm(third)?'var(--verde)':'#CD7F32';
       tds+=`<td rowspan="32" style="vertical-align:middle;border:none;padding:0 4px;min-width:108px">
         <div style="margin-bottom:8px;text-align:center;padding:8px 6px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:7px">
           <div style="font-size:9px;color:var(--text2);font-weight:600">🏆 CAMPEÓN</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${champColor};margin-top:2px">${champ||'TBD'}</div>
-          ${champPlayed?`<div style="font-size:8px;color:${rChamp===champ?'var(--verde)':'var(--rojo)'};font-weight:${rChamp===champ?'700':'400'}">${rChamp===champ?'⭐ +12 Correcto':'✗ '+rChamp}</div>`:''}
+          ${champPlayed?`<div style="font-size:8px;color:${norm(rChamp)===norm(champ)?'var(--verde)':'var(--rojo)'};font-weight:${norm(rChamp)===norm(champ)?'700':'400'}">${norm(rChamp)===norm(champ)?'⭐ +12 Correcto':'✗ '+rChamp}</div>`:''}
         </div>
         <div style="text-align:center;padding:6px;background:rgba(205,127,50,.06);border:1px solid rgba(205,127,50,.28);border-radius:7px">
           <div style="font-size:9px;color:var(--text2);font-weight:600">🥉 3ER LUGAR</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:${thirdColor};margin-top:1px">${third||'TBD'}</div>
-          ${champPlayed?`<div style="font-size:8px;color:${rThird===third?'var(--verde)':'var(--rojo)'};font-weight:${rThird===third?'700':'400'}">${rThird===third?'✓ +5 Correcto':'✗ '+rThird}</div>`:''}
+          ${champPlayed?`<div style="font-size:8px;color:${norm(rThird)===norm(third)?'var(--verde)':'var(--rojo)'};font-weight:${norm(rThird)===norm(third)?'700':'400'}">${norm(rThird)===norm(third)?'✓ +5 Correcto':'✗ '+rThird}</div>`:''}
         </div>
       </td>`;
     }
