@@ -400,57 +400,60 @@ async function loadAll() {
     try { quinielaRows=await fetchCSV(GIDS.control); } catch(e2) {}
   }
 
-  // ── Cargar ganadores reales de 16avos desde Quinielas2026 (cols JS:KH = índices 278-293) ──
-  // La fila de resultados reales en Quinielas2026: tiene equipos en col 278+ y col[5] vacío/no-numérico
-  // (los quinieleros normales tienen puntos numéricos en col[5]=R1)
+  // ── Cargar resultados reales desde TablaControl ──
+  // La fila de resultados reales es SIEMPRE el índice 2 (fila 3) de TablaControl.
+  // Contiene los ganadores reales del bracket en cols 278+ (Octavos JS:KI).
+  // TablaControl y Quinielas2026 tienen la misma estructura de columnas.
+  // IMPORTANTE: el CSV de TablaControl puede truncar cols > ~300 según visibilidad.
+  // Por eso buscamos la fila en AMBOS sheets y usamos la que tenga más datos en col 278+.
   try {
     const ctrlRows = await fetchCSV(GIDS.control);
-    const isTeam = v => {
-      if(!v) return false;
-      const t = v.trim();
-      return t.length > 1 && isNaN(parseInt(t))
-          && !['Lg','Nombre','1ro','2do','3ro','R1','R2','R3','Tot','Marc','Gpos','8vos','Dif','Grupo'].includes(t);
-    };
+    const qRows = quinielaRows;
 
-    // Estrategia A: buscar en quinielaRows — fila con equipo en col 278 y sin puntos en col 5
-    for(const r of quinielaRows){
-      const r5 = (r[5]||'').trim();
-      const hasOct = isTeam(r[278]);
-      const noPoints = !r5 || isNaN(parseInt(r5)) || parseInt(r5) === 0;
-      if(hasOct && noPoints){
-        realResults = r;
-        console.log('✅ realResults (quinielaRows): col278=',r[278],'col279=',r[279],'col280=',r[280]);
-        break;
-      }
-    }
+    // Fila 3 = índice 2 en ambos sheets
+    const ctrlRow3 = ctrlRows[2] || [];
+    const qRow3    = qRows[2]    || [];
 
-    // Estrategia B: buscar en ctrlRows por equipo en col 278 (funciona si TablaControl exporta cols anchas)
-    if(!realResults.length){
-      for(const r of ctrlRows){
-        if(isTeam(r[278]) || isTeam(r[279])){
-          realResults = r;
-          console.log('✅ realResults (ctrlRows): col278=',r[278]);
+    // ¿Cuál tiene datos en col 278?
+    const ctrlHas = ctrlRow3[278] && ctrlRow3[278].trim().length > 1;
+    const qHas    = qRow3[278]    && qRow3[278].trim().length > 1;
+
+    if(ctrlHas){
+      realResults = ctrlRow3;
+      console.log('✅ realResults ctrlRows[2]: col278=', ctrlRow3[278], 'col279=', ctrlRow3[279]);
+    } else if(qHas){
+      realResults = qRow3;
+      console.log('✅ realResults quinielaRows[2]: col278=', qRow3[278], 'col279=', qRow3[279]);
+    } else {
+      // Fallback: buscar en cualquier fila de ctrlRows que tenga equipo en col 278
+      const isTeam = v => v && v.trim().length>1 && isNaN(parseInt(v.trim()))
+                       && !['Lg','Nombre','R1','R2','R3','Tot','Marc','Gpos','8vos','Dif'].includes(v.trim());
+      for(let i=0;i<Math.min(ctrlRows.length,10);i++){
+        if(isTeam(ctrlRows[i][278])){
+          realResults = ctrlRows[i];
+          console.log('✅ realResults fallback ctrlRows['+i+']: col278=', ctrlRows[i][278]);
           break;
+        }
+      }
+      if(!realResults.length){
+        for(let i=0;i<Math.min(qRows.length,10);i++){
+          if(isTeam(qRows[i][278])){
+            realResults = qRows[i];
+            console.log('✅ realResults fallback qRows['+i+']: col278=', qRows[i][278]);
+            break;
+          }
         }
       }
     }
 
-    // Estrategia C: buscar en quinielaRows por col 233 (clasificados de grupos — datos más abundantes)
-    if(!realResults.length){
-      for(const r of quinielaRows){
-        const r5 = (r[5]||'').trim();
-        const hasClasif = isTeam(r[233]);
-        const noPoints = !r5 || isNaN(parseInt(r5)) || parseInt(r5) === 0;
-        if(hasClasif && noPoints){
-          realResults = r;
-          console.log('✅ realResults (quinielaRows col233): col233=',r[233],'col278=',r[278]);
-          break;
-        }
-      }
+    if(realResults.length){
+      const ganadores = Array.from({length:16},(_,i)=>realResults[278+i]).filter(Boolean);
+      console.log('🏆 Ganadores 16avos detectados:', ganadores.join(', '));
+    } else {
+      console.warn('⚠️ Sin realResults. ctrlRows.length=',ctrlRows.length,'qRows.length=',qRows.length);
+      // Log primeras 5 filas de ctrlRows para diagnóstico
+      ctrlRows.slice(0,5).forEach((r,i)=>console.log('ctrlRow['+i+'] cols 275-285:', r.slice(275,285).join('|')));
     }
-
-    if(!realResults.length) console.warn('⚠️ Sin realResults. quinielaRows.length=',quinielaRows.length,'ctrlRows.length=',ctrlRows.length);
-    else console.log('realResults oct ganadores:', Array.from({length:16},(_,i)=>realResults[278+i]).filter(Boolean));
   } catch(e) { console.warn('Error cargando realResults:', e.message); }
 
   // ── Cargar eliminados desde pestaña Eliminados col B (índice 1) ──
