@@ -1997,21 +1997,42 @@ function buildTennisDraw(nombre){
   // Log de diagnóstico
   console.log('🔍 Bracket',nombre,'| realOct16:',[...realOct16].join(','),'| elim:',[...eliminadosSet].join(','));
 
-  // ── Regla de color y badge ───────────────────────────────────────
-  // Verde + pts : el equipo está en el set de ganadores reales de ESA ronda
-  // Rojo  + +0  : el equipo está en eliminadosSet
-  // Negro       : ni eliminado ni confirmado — sin jugar aún
-  const teamColor = (v, realSetN, played) => {
+  // ── Regla de color y badge — lógica correcta por columna ────────
+  //
+  // Col 16avos:  rojo+0 si eliminado de grupos (nunca llegó), negro si llegó. SIN verde nunca.
+  // Col Octavos: verde+4 si está en realOct16 Y el quinielero lo tenía. rojo+0 si jugó y no ganó o eliminado. negro si sin jugar.
+  // Col Cuartos: verde+6 si está en realCto Y el quinielero lo tenía. rojo+0 si jugó y no ganó o eliminado. negro si sin jugar.
+  // Col Semis:   verde+8 si está en realSemi. rojo+0 si jugó y no ganó o eliminado.
+  // Col Final:   verde+10 si está en realFin. rojo+0 si jugó y no ganó o eliminado.
+  // Col Campeón: verde+12 si es el campeón real.
+
+  // Color para col 16avos: solo rojo si eliminado de grupos, negro en todo lo demás
+  const color16 = v => {
     if(!v||v==='?'||v==='3ro?') return 'var(--text3)';
     if(isElim(v)) return 'var(--rojo)';
-    if(!played) return 'var(--text)';
-    return realSetN.has(norm(v)) ? 'var(--verde)' : 'var(--rojo)';
+    return 'var(--text)'; // llegó a 16avos — negro siempre
   };
-  const mkBadge = (v, realSetN, pts, played) => {
-    if(!v||v==='?') return '';
+  // Badge para col 16avos: solo +0 si eliminado
+  const badge16 = v => {
+    if(!v||v==='?'||v==='3ro?') return '';
     if(isElim(v)) return '<span style="font-size:8px;color:var(--rojo);font-weight:400;flex-shrink:0">+0</span>';
-    if(played && realSetN.has(norm(v))) return '<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+'+pts+'</span>';
-    return '';
+    return ''; // nunca verde, nunca +N en col 16avos
+  };
+
+  // Color para columnas de rondas (Oct, Cto, Semi, Fin): verde si ganó realmente, rojo si perdió/eliminado, negro si sin jugar
+  const teamColor = (v, realSetN, matchPlayed) => {
+    if(!v||v==='?'||v==='3ro?') return 'var(--text3)';
+    if(isElim(v)) return 'var(--rojo)';            // eliminado → siempre rojo
+    if(!matchPlayed) return 'var(--text)';          // partido sin jugar → negro
+    return realSetN.has(norm(v)) ? 'var(--verde)' : 'var(--rojo)'; // ganó=verde, perdió=rojo
+  };
+  // Badge para columnas de rondas: +pts si ganó, +0 si perdió/eliminado tras jugarse
+  const mkBadge = (v, realSetN, pts, matchPlayed) => {
+    if(!v||v==='?'||v==='3ro?') return '';
+    if(isElim(v)) return '<span style="font-size:8px;color:var(--rojo);font-weight:400;flex-shrink:0">+0</span>';
+    if(!matchPlayed) return '';
+    if(realSetN.has(norm(v))) return '<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+'+pts+'</span>';
+    return '<span style="font-size:8px;color:var(--rojo);font-weight:400;flex-shrink:0">+0</span>';
   };
 
   // ── Bracket del quinielero ────────────────────────────────────────
@@ -2049,8 +2070,10 @@ function buildTennisDraw(nombre){
     {a:c1['K'],b:t3(7), lbl:'1K vs 3ro'},
   ];
 
-  // ¿Rondas con resultados?
-  const oct16Played = realOct16.size > 0;
+  // Array de resultados reales partido a partido (para saber si ESE partido específico ya se jugó)
+  const roct16 = []; for(let i=0;i<16;i++) roct16.push(rGetT(278+i)||'');
+
+  // ¿Rondas completas con resultados? (para Octavos en adelante)
   const ctoPlayed   = realCto.size  > 0;
   const semiPlayed  = realSemi.size  > 0;
   const finPlayed   = realFin.size   > 0;
@@ -2074,9 +2097,9 @@ function buildTennisDraw(nombre){
     const v=eq===0?m.a:m.b;
     const borderBottom=isLastInPair&&p16<15?'2px solid var(--bg4)':'1px solid var(--border)';
 
-    // Celda 16avos
-    const c16=teamColor(v, realOct16N, oct16Played);
-    const b16=mkBadge(v, realOct16N, 4, oct16Played);
+    // Celda 16avos — negro si llegó, rojo+0 si eliminado de grupos, nunca verde
+    const c16=color16(v);
+    const b16=badge16(v);
     let tds=`<tr>`;
     if(eq===0) tds+=`<td rowspan="2" style="padding:0 4px;font-size:7px;color:var(--text2);vertical-align:middle;text-align:right;white-space:nowrap;border:none">${m.lbl}</td>`;
     tds+=`<td style="padding:0 6px;height:${EH}px;vertical-align:middle;background:var(--bg3);border:1px solid var(--border);border-bottom:${borderBottom}">
@@ -2090,8 +2113,11 @@ function buildTennisDraw(nombre){
     // Celda Octavos
     if(isFirstInOct){
       const oa=oct[p16]||'?', ob=oct[p16+1]||'?';
-      const ca=teamColor(oa,realCtoN,ctoPlayed), cb=teamColor(ob,realCtoN,ctoPlayed);
-      const ba=mkBadge(oa,realCtoN,6,ctoPlayed), bb=mkBadge(ob,realCtoN,6,ctoPlayed);
+      // "played" para cada equipo = si SU partido de 16avos ya se jugó
+      const playedA = roct16[p16]   !== '';
+      const playedB = roct16[p16+1] !== '';
+      const ca=teamColor(oa,realOct16N,playedA), cb=teamColor(ob,realOct16N,playedB);
+      const ba=mkBadge(oa,realOct16N,4,playedA), bb=mkBadge(ob,realOct16N,4,playedB);
       tds+=`<td rowspan="4" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*4}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2109,8 +2135,11 @@ function buildTennisDraw(nombre){
     // Celda Cuartos
     if(isFirstInCto){
       const ca_t=cto[cto_i*2]||'?', cb_t=cto[cto_i*2+1]||'?';
-      const ca=teamColor(ca_t,realSemiN,semiPlayed), cb=teamColor(cb_t,realSemiN,semiPlayed);
-      const ba=mkBadge(ca_t,realSemiN,8,semiPlayed), bb=mkBadge(cb_t,realSemiN,8,semiPlayed);
+      // "played" = si el partido de 8vos de ese slot ya se jugó
+      const playedA = rGetT(295+cto_i*2)   !== null;
+      const playedB = rGetT(295+cto_i*2+1) !== null;
+      const ca=teamColor(ca_t,realCtoN,playedA), cb=teamColor(cb_t,realCtoN,playedB);
+      const ba=mkBadge(ca_t,realCtoN,6,playedA), bb=mkBadge(cb_t,realCtoN,6,playedB);
       tds+=`<td rowspan="8" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*8}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2128,8 +2157,11 @@ function buildTennisDraw(nombre){
     // Celda Semis
     if(isFirstInSemi){
       const sa=semi[semi_i*2]||'?', sb=semi[semi_i*2+1]||'?';
-      const ca=teamColor(sa,realFinN,finPlayed), cb=teamColor(sb,realFinN,finPlayed);
-      const ba=mkBadge(sa,realFinN,10,finPlayed), bb=mkBadge(sb,realFinN,10,finPlayed);
+      // "played" = si el partido de cuartos de ese slot ya se jugó
+      const playedA = rGetT(304+semi_i*2)   !== null;
+      const playedB = rGetT(304+semi_i*2+1) !== null;
+      const ca=teamColor(sa,realSemiN,playedA), cb=teamColor(sb,realSemiN,playedB);
+      const ba=mkBadge(sa,realSemiN,8,playedA), bb=mkBadge(sb,realSemiN,8,playedB);
       tds+=`<td rowspan="16" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*16}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2147,9 +2179,12 @@ function buildTennisDraw(nombre){
     // Celda Final + Campeón
     if(isFirstInFin){
       const fa=fin[0]||'?', fb=fin[1]||'?';
+      // "played" = si el partido de semis de ese finalista ya se jugó
+      const playedA = rGetT(309)   !== null;
+      const playedB = rGetT(310) !== null;
       const realChampSetN=new Set([norm(rChamp)].filter(v=>v));
-      const ca=teamColor(fa,realChampSetN,champPlayed), cb=teamColor(fb,realChampSetN,champPlayed);
-      const ba=mkBadge(fa,realChampSetN,12,champPlayed), bb=mkBadge(fb,realChampSetN,12,champPlayed);
+      const ca=teamColor(fa,realFinN,playedA), cb=teamColor(fb,realFinN,playedB);
+      const ba=mkBadge(fa,realFinN,10,playedA), bb=mkBadge(fb,realFinN,10,playedB);
       tds+=`<td rowspan="32" style="vertical-align:middle;border:none;padding:0 4px">
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
           <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
