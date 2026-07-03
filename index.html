@@ -311,8 +311,12 @@ const csvUrl = gid => `${BASE}/pub?gid=${gid}&single=true&output=csv`;
 // ══════════════════════════════════════════════
 let players = [], sortDir = {col:'tot',asc:false};
 let quinielaRows = [], isLoading = false;
-let realResults = [];      // fila de TablaControl con ganadores reales (cols 278-293 = JS:KH = 16avos)
-let eliminadosSet = new Set(); // equipos eliminados cargados dinámicamente desde pestaña Eliminados col B
+let realResults = [];
+let eliminadosSet    = new Set(); // eliminados en grupos  → rojo en col 16avos
+let eliminadosOct16  = new Set(); // eliminados en 16avos  → rojo en col Octavos
+let eliminadosCto    = new Set(); // eliminados en 8vos    → rojo en col Cuartos
+let eliminadosSemi   = new Set(); // eliminados en cuartos → rojo en col Semis
+let eliminadosFin    = new Set(); // eliminados en semis   → rojo en col Final
 let apiKey = localStorage.getItem('claudinho_key') || '';
 let prevComments = JSON.parse(localStorage.getItem('claudinho_comments') || '[]');
 
@@ -457,18 +461,31 @@ async function loadAll() {
   } catch(e) { console.warn('Error cargando realResults:', e.message); }
 
   // ── Cargar eliminados desde pestaña Eliminados col B (índice 1) ──
-  // Fuente única de verdad para todos los equipos eliminados
+  // El orden en col B determina en qué ronda fueron eliminados:
+  // Filas 1-16  → eliminados en grupos     → rojo en col 16avos
+  // Filas 17-32 → eliminados en 16avos     → rojo en col Octavos
+  // Filas 33-40 → eliminados en 8vos       → rojo en col Cuartos
+  // Filas 41-44 → eliminados en Cuartos    → rojo en col Semis
+  // Filas 45-46 → eliminados en Semis      → rojo en col Final
+  // (fila 1 = primera fila de datos, saltando posible header)
   try {
     const elimRows = await fetchCSV(GIDS.eliminados);
-    eliminadosSet = new Set();
-    const skipWords = new Set(['equipo','eliminados','nombre','team','b','#']);
+    const skipWords = new Set(['equipo','eliminados','nombre','team','b','#','']);
+    const equipos = [];
     for(const r of elimRows){
-      const nombre = (r[1]||'').trim(); // col B = índice 1
+      const nombre = (r[1]||'').trim();
       if(nombre && nombre.length > 1 && !skipWords.has(nombre.toLowerCase())){
-        eliminadosSet.add(nombre);
+        equipos.push(nombre);
       }
     }
-    console.log('✅ Eliminados cargados:', eliminadosSet.size, [...eliminadosSet].join(' | '));
+    // Distribuir por ronda según posición
+    eliminadosSet       = new Set(equipos.slice(0,16));  // grupos → rojo en 16avos
+    eliminadosOct16     = new Set(equipos.slice(16,32)); // 16avos → rojo en Octavos
+    eliminadosCto       = new Set(equipos.slice(32,40)); // 8vos   → rojo en Cuartos
+    eliminadosSemi      = new Set(equipos.slice(40,44)); // Ctos   → rojo en Semis
+    eliminadosFin       = new Set(equipos.slice(44,46)); // Semis  → rojo en Final
+    console.log('✅ Elim grupos('+eliminadosSet.size+'):',[...eliminadosSet].join(', '));
+    console.log('✅ Elim 16avos('+eliminadosOct16.size+'):',[...eliminadosOct16].join(', '));
   } catch(e) { console.warn('Error cargando eliminados:', e.message); }
 
   document.getElementById('search-t').value=''; // limpiar búsqueda al recargar
@@ -1960,76 +1977,70 @@ function buildTennisDraw(nombre){
   const getT=col=>{const v=row[col]?.trim();return isT(v)?v:null;};
   const rGetT=col=>{const v=realResults[col]?.trim();return isT(v)?v:null;};
 
-  // ── Fuentes de verdad ─────────────────────────────────────────────
-  // Ganadores reales de 16avos: TablaControl cols JS:KH (índices 278-293)
+  // ── Fuentes de verdad — columnas del sheet (0-based) ─────────────
+  // Octavos ganadores:   JS-KI = 278-294 (17 slots, 16 partidos + 1 col puntos)
+  // Cuartos ganadores:   KJ-KR = 295-303 (9 slots, 8 partidos + 1 col puntos)
+  // Semis ganadores:     KS-KW = 304-308 (5 slots, 4 partidos + 1 col puntos)
+  // Finalistas:          KX-KZ = 309-311 (3 slots, 2 finalistas + 1 col puntos)
+  // 3er Lugar:           LA    = 312
+  // Campeón:             LB    = 313
   const realOct16 = new Set();
   for(let i=0;i<16;i++){ const v=rGetT(278+i); if(v) realOct16.add(v); }
-  // Ganadores reales de 8vos (cuartos): cols 295-302
   const realCto = new Set();
   for(let i=0;i<8;i++){ const v=rGetT(295+i); if(v) realCto.add(v); }
-  // Ganadores reales de semis: cols 304-307
   const realSemi = new Set();
   for(let i=0;i<4;i++){ const v=rGetT(304+i); if(v) realSemi.add(v); }
-  // Finalistas reales: cols 309-310
   const realFin = new Set();
   for(let i=0;i<2;i++){ const v=rGetT(309+i); if(v) realFin.add(v); }
-  // Campeón y 3er lugar reales
   const rChamp=rGetT(313)||'';
   const rThird=rGetT(312)||'';
 
-  // Normalizar nombre para comparación tolerante (quita tildes, lowercase, trim)
-  const norm = s => (s||'').trim().toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  // Array partido a partido para saber si ESE partido ya se jugó
+  const roct16=[]; for(let i=0;i<16;i++) roct16.push(rGetT(278+i)||'');  // ganador partido i de 16avos
+  const rcto8=[];  for(let i=0;i<8;i++)  rcto8.push(rGetT(295+i)||'');   // ganador partido i de 8vos
+  const rsemi4=[];  for(let i=0;i<4;i++) rsemi4.push(rGetT(304+i)||'');  // ganador partido i de cuartos
+  const rfin2=[];  for(let i=0;i<2;i++)  rfin2.push(rGetT(309+i)||'');   // ganador partido i de semis
 
-  // Eliminados: set normalizado para match tolerante
-  const elimNorm = new Set([...eliminadosSet].map(norm));
-  const isElim = v => elimNorm.has(norm(v));
+  // Sets normalizados por ronda
+  const norm = s => (s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const normSet = s => new Set([...s].map(norm));
+  const eGrupos  = normSet(eliminadosSet);    // rojo en col 16avos
+  const eOct16   = normSet(eliminadosOct16);  // rojo en col Octavos
+  const eCto     = normSet(eliminadosCto);    // rojo en col Cuartos
+  const eSemi    = normSet(eliminadosSemi);   // rojo en col Semis
+  const eFin     = normSet(eliminadosFin);    // rojo en col Final
+  const elimAny  = normSet(new Set([...eliminadosSet,...eliminadosOct16,...eliminadosCto,...eliminadosSemi,...eliminadosFin]));
 
   // Sets normalizados de resultados reales
-  const normSet = s => new Set([...s].map(norm));
   const realOct16N = normSet(realOct16);
   const realCtoN   = normSet(realCto);
   const realSemiN  = normSet(realSemi);
   const realFinN   = normSet(realFin);
   const rChampN    = norm(rChamp);
-  const rThirdN    = norm(rThird);
 
-  // Log de diagnóstico
-  console.log('🔍 Bracket',nombre,'| realOct16:',[...realOct16].join(','),'| elim:',[...eliminadosSet].join(','));
+  console.log('🔍 Bracket',nombre,'| oct16:',[...realOct16].join(','),'| eGrupos:',[...eliminadosSet].join(','));
 
-  // ── Regla de color y badge — lógica correcta por columna ────────
-  //
-  // Col 16avos:  rojo+0 si eliminado de grupos (nunca llegó), negro si llegó. SIN verde nunca.
-  // Col Octavos: verde+4 si está en realOct16 Y el quinielero lo tenía. rojo+0 si jugó y no ganó o eliminado. negro si sin jugar.
-  // Col Cuartos: verde+6 si está en realCto Y el quinielero lo tenía. rojo+0 si jugó y no ganó o eliminado. negro si sin jugar.
-  // Col Semis:   verde+8 si está en realSemi. rojo+0 si jugó y no ganó o eliminado.
-  // Col Final:   verde+10 si está en realFin. rojo+0 si jugó y no ganó o eliminado.
-  // Col Campeón: verde+12 si es el campeón real.
-
-  // Color para col 16avos: solo rojo si eliminado de grupos, negro en todo lo demás
+  // ── Funciones de color y badge por columna ────────────────────────
+  // Col 16avos:  rojo si eliminado EN GRUPOS (eGrupos). Negro en todo lo demás. Sin badge nunca.
   const color16 = v => {
     if(!v||v==='?'||v==='3ro?') return 'var(--text3)';
-    if(isElim(v)) return 'var(--rojo)';
-    return 'var(--text)'; // llegó a 16avos — negro siempre
+    return eGrupos.has(norm(v)) ? 'var(--rojo)' : 'var(--text)';
   };
-  // Badge para col 16avos: solo +0 si eliminado
   const badge16 = v => {
-    if(!v||v==='?'||v==='3ro?') return '';
-    if(isElim(v)) return '<span style="font-size:8px;color:var(--rojo);font-weight:400;flex-shrink:0">+0</span>';
-    return ''; // nunca verde, nunca +N en col 16avos
+    if(!v||v==='?'||v==='3ro?'||!eGrupos.has(norm(v))) return '';
+    return '<span style="font-size:8px;color:var(--rojo);font-weight:400;flex-shrink:0">+0</span>';
   };
 
-  // Color para columnas de rondas (Oct, Cto, Semi, Fin): verde si ganó realmente, rojo si perdió/eliminado, negro si sin jugar
-  const teamColor = (v, realSetN, matchPlayed) => {
+  // Cols Octavos+: verde+pts si pasó esa ronda, rojo+0 si está eliminado de esa ronda O perdió, negro si sin jugar
+  const mkColor = (v, realSetN, elimSetN, matchPlayed) => {
     if(!v||v==='?'||v==='3ro?') return 'var(--text3)';
-    if(isElim(v)) return 'var(--rojo)';            // eliminado → siempre rojo
-    if(!matchPlayed) return 'var(--text)';          // partido sin jugar → negro
-    return realSetN.has(norm(v)) ? 'var(--verde)' : 'var(--rojo)'; // ganó=verde, perdió=rojo
+    if(elimAny.has(norm(v))) return 'var(--rojo)';   // eliminado en cualquier ronda anterior → siempre rojo
+    if(!matchPlayed) return 'var(--text)';             // sin jugar → negro
+    return realSetN.has(norm(v)) ? 'var(--verde)' : 'var(--rojo)';
   };
-  // Badge para columnas de rondas: +pts si ganó, +0 si perdió/eliminado tras jugarse
   const mkBadge = (v, realSetN, pts, matchPlayed) => {
     if(!v||v==='?'||v==='3ro?') return '';
-    if(isElim(v)) return '<span style="font-size:8px;color:var(--rojo);font-weight:400;flex-shrink:0">+0</span>';
+    if(elimAny.has(norm(v))) return '<span style="font-size:8px;color:var(--rojo);font-weight:400;flex-shrink:0">+0</span>';
     if(!matchPlayed) return '';
     if(realSetN.has(norm(v))) return '<span style="font-size:8px;color:var(--verde);font-weight:700;flex-shrink:0">+'+pts+'</span>';
     return '<span style="font-size:8px;color:var(--rojo);font-weight:400;flex-shrink:0">+0</span>';
@@ -2044,6 +2055,12 @@ function buildTennisDraw(nombre){
   if(col1ro.length>=12) gL.forEach((g,i)=>{c1[g]=getT(col1ro[i])||'?';c2[g]=getT(col1ro[i]+1)||'?';});
   const ter=[]; for(let i=0;i<8;i++) ter.push(getT(269+i)||null);
   const t3=(i)=>ter[i]||'3ro?';
+  // Predicciones del quinielero — mismos rangos que realResults
+  // oct: JS-KI=278-293 (16 ganadores de 16avos predichos)
+  // cto: KJ-KR=295-302 (8 ganadores de 8vos predichos)
+  // semi: KS-KW=304-307 (4 ganadores de cuartos predichos)
+  // fin: KX-KZ=309-310 (2 finalistas predichos)
+  // 3er: LA=312, champ: LB=313
   const oct=[];  for(let i=0;i<16;i++) oct.push(getT(278+i)||'');
   const cto=[];  for(let i=0;i<8;i++)  cto.push(getT(295+i)||'');
   const semi=[]; for(let i=0;i<4;i++)  semi.push(getT(304+i)||'');
@@ -2070,13 +2087,7 @@ function buildTennisDraw(nombre){
     {a:c1['K'],b:t3(7), lbl:'1K vs 3ro'},
   ];
 
-  // Array de resultados reales partido a partido (para saber si ESE partido específico ya se jugó)
-  const roct16 = []; for(let i=0;i<16;i++) roct16.push(rGetT(278+i)||'');
-
-  // ¿Rondas completas con resultados? (para Octavos en adelante)
-  const ctoPlayed   = realCto.size  > 0;
-  const semiPlayed  = realSemi.size  > 0;
-  const finPlayed   = realFin.size   > 0;
+  // ¿Rondas completas? (para Cuartos en adelante ya no es necesario — usamos por partido)
   const champPlayed = rChamp !== '';
 
   const EH=24;
@@ -2085,9 +2096,9 @@ function buildTennisDraw(nombre){
   for(let f=0;f<32;f++){
     const p16=Math.floor(f/2);
     const eq=f%2;
-    const oct_i=Math.floor(p16/2);
-    const cto_i=Math.floor(p16/4);
-    const semi_i=Math.floor(p16/8);
+    const oct_i=Math.floor(p16/2);   // índice de partido de 8vos (0-7)
+    const cto_i=Math.floor(p16/4);   // índice de partido de cuartos (0-3)
+    const semi_i=Math.floor(p16/8);  // índice de partido de semis (0-1)
     const isFirstInOct=(p16%2===0&&eq===0);
     const isFirstInCto=(p16%4===0&&eq===0);
     const isFirstInSemi=(p16%8===0&&eq===0);
@@ -2097,7 +2108,7 @@ function buildTennisDraw(nombre){
     const v=eq===0?m.a:m.b;
     const borderBottom=isLastInPair&&p16<15?'2px solid var(--bg4)':'1px solid var(--border)';
 
-    // Celda 16avos — negro si llegó, rojo+0 si eliminado de grupos, nunca verde
+    // Col 16avos: negro o rojo según eliminados de grupos
     const c16=color16(v);
     const b16=badge16(v);
     let tds=`<tr>`;
@@ -2113,10 +2124,10 @@ function buildTennisDraw(nombre){
     // Celda Octavos
     if(isFirstInOct){
       const oa=oct[p16]||'?', ob=oct[p16+1]||'?';
-      // "played" para cada equipo = si SU partido de 16avos ya se jugó
+      // played = si el partido de 16avos de ESE slot ya se jugó (hay ganador real)
       const playedA = roct16[p16]   !== '';
       const playedB = roct16[p16+1] !== '';
-      const ca=teamColor(oa,realOct16N,playedA), cb=teamColor(ob,realOct16N,playedB);
+      const ca=mkColor(oa,realOct16N,eOct16,playedA), cb=mkColor(ob,realOct16N,eOct16,playedB);
       const ba=mkBadge(oa,realOct16N,4,playedA), bb=mkBadge(ob,realOct16N,4,playedB);
       tds+=`<td rowspan="4" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*4}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
@@ -2135,10 +2146,10 @@ function buildTennisDraw(nombre){
     // Celda Cuartos
     if(isFirstInCto){
       const ca_t=cto[cto_i*2]||'?', cb_t=cto[cto_i*2+1]||'?';
-      // "played" = si el partido de 8vos de ese slot ya se jugó
-      const playedA = rGetT(295+cto_i*2)   !== null;
-      const playedB = rGetT(295+cto_i*2+1) !== null;
-      const ca=teamColor(ca_t,realCtoN,playedA), cb=teamColor(cb_t,realCtoN,playedB);
+      // played = si el partido de 8vos de ESE slot ya se jugó
+      const playedA = rcto8[cto_i*2]   !== '';
+      const playedB = rcto8[cto_i*2+1] !== '';
+      const ca=mkColor(ca_t,realCtoN,eCto,playedA), cb=mkColor(cb_t,realCtoN,eCto,playedB);
       const ba=mkBadge(ca_t,realCtoN,6,playedA), bb=mkBadge(cb_t,realCtoN,6,playedB);
       tds+=`<td rowspan="8" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*8}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
@@ -2157,10 +2168,10 @@ function buildTennisDraw(nombre){
     // Celda Semis
     if(isFirstInSemi){
       const sa=semi[semi_i*2]||'?', sb=semi[semi_i*2+1]||'?';
-      // "played" = si el partido de cuartos de ese slot ya se jugó
-      const playedA = rGetT(304+semi_i*2)   !== null;
-      const playedB = rGetT(304+semi_i*2+1) !== null;
-      const ca=teamColor(sa,realSemiN,playedA), cb=teamColor(sb,realSemiN,playedB);
+      // played = si el partido de cuartos de ESE slot ya se jugó
+      const playedA = rsemi4[semi_i*2]   !== '';
+      const playedB = rsemi4[semi_i*2+1] !== '';
+      const ca=mkColor(sa,realSemiN,eSemi,playedA), cb=mkColor(sb,realSemiN,eSemi,playedB);
       const ba=mkBadge(sa,realSemiN,8,playedA), bb=mkBadge(sb,realSemiN,8,playedB);
       tds+=`<td rowspan="16" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*16}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
@@ -2179,11 +2190,11 @@ function buildTennisDraw(nombre){
     // Celda Final + Campeón
     if(isFirstInFin){
       const fa=fin[0]||'?', fb=fin[1]||'?';
-      // "played" = si el partido de semis de ese finalista ya se jugó
-      const playedA = rGetT(309)   !== null;
-      const playedB = rGetT(310) !== null;
+      // played = si la semi de ESE finalista ya se jugó
+      const playedA = rfin2[0] !== '';
+      const playedB = rfin2[1] !== '';
       const realChampSetN=new Set([norm(rChamp)].filter(v=>v));
-      const ca=teamColor(fa,realFinN,playedA), cb=teamColor(fb,realFinN,playedB);
+      const ca=mkColor(fa,realFinN,eFin,playedA), cb=mkColor(fb,realFinN,eFin,playedB);
       const ba=mkBadge(fa,realFinN,10,playedA), bb=mkBadge(fb,realFinN,10,playedB);
       tds+=`<td rowspan="32" style="vertical-align:middle;border:none;padding:0 4px">
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2196,8 +2207,8 @@ function buildTennisDraw(nombre){
         </div>
       </td><td rowspan="32" style="width:12px;border:none"></td>`;
       // Campeón y 3er lugar
-      const champColor=isElim(champ)?'var(--rojo)':champPlayed&&norm(rChamp)===norm(champ)?'var(--verde)':'var(--dorado)';
-      const thirdColor=isElim(third)?'var(--rojo)':champPlayed&&norm(rThird)===norm(third)?'var(--verde)':'#CD7F32';
+      const champColor=elimAny.has(norm(champ))?'var(--rojo)':champPlayed&&norm(rChamp)===norm(champ)?'var(--verde)':'var(--dorado)';
+      const thirdColor=elimAny.has(norm(third))?'var(--rojo)':champPlayed&&norm(rThird)===norm(third)?'var(--verde)':'#CD7F32';
       tds+=`<td rowspan="32" style="vertical-align:middle;border:none;padding:0 4px;min-width:108px">
         <div style="margin-bottom:8px;text-align:center;padding:8px 6px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:7px">
           <div style="font-size:9px;color:var(--text2);font-weight:600">🏆 CAMPEÓN</div>
