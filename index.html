@@ -2038,7 +2038,6 @@ function buildTennisDraw(nombre){
 
   console.log('🔍 Bracket',nombre,'| oct16:',[...realOct16].join(','),'| eGrupos:',[...eliminadosSet].join(','));
   console.log('🔍 roct16:',roct16.join(','));
-  console.log('🔍 oct[]:', oct.join(','));
 
   // ── Funciones de color y badge por columna ────────────────────────
   // Regla simple:
@@ -2102,6 +2101,7 @@ function buildTennisDraw(nombre){
   const semi=[]; for(let i=0;i<4;i++)  semi.push(getT(304+i)||'');
   const fin=[];  for(let i=0;i<2;i++)  fin.push(getT(309+i)||'');
   const third=getT(312)||''; const champ=getT(313)||'';
+  console.log('🔍 oct[]:', oct.join(','));
 
   // 16 partidos de 16avos
   const m16=[
