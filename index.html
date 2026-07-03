@@ -1954,10 +1954,11 @@ function showBracket(nombre){
     <details style="margin-bottom:8px;font-size:10px;color:var(--text3)">
       <summary style="cursor:pointer;user-select:none">🔍 Diagnóstico de datos</summary>
       <div style="margin-top:4px;padding:6px 10px;background:var(--bg3);border-radius:6px;font-family:monospace;font-size:9px;line-height:1.7">
-        <b>realResults cargado:</b> ${realResults.length ? '✅ sí (' + realResults.length + ' cols)' : '❌ NO — bracket no tendrá colores reales'}<br>
-        <b>Ganadores 16avos (col 278-293):</b> ${Array.from({length:16},(_,i)=>realResults[278+i]).filter(Boolean).join(', ')||'ninguno'}<br>
-        <b>Eliminados cargados:</b> ${eliminadosSet.size} equipos<br>
-        <b>Lista eliminados:</b> ${[...eliminadosSet].join(', ')||'vacío'}
+        <b>realResults cargado:</b> ${realResults.length ? '✅ sí (' + realResults.length + ' cols)' : '❌ NO'}<br>
+        <b>Ganadores 16avos real (cols 278-294 raw):</b><br>
+        ${Array.from({length:17},(_,i)=>`[${278+i}]="${realResults[278+i]||''}" `).join('')}<br>
+        <b>Eliminados grupos:</b> ${[...eliminadosSet].join(', ')||'vacío'}<br>
+        <b>Eliminados 16avos:</b> ${[...eliminadosOct16].join(', ')||'vacío'}
       </div>
     </details>
     ${buildTennisDraw(nombre)}`;
