@@ -358,11 +358,15 @@ function detectCols(rows) {
       rank: r.findIndex(c=>c&&c.trim()==='Lg')>=0 ? r.findIndex(c=>c&&c.trim()==='Lg') : ni-1,
       nombre:ni, r1:r.findIndex(c=>c&&c.trim()==='R1'), r2:r.findIndex(c=>c&&c.trim()==='R2'),
       r3:r.findIndex(c=>c&&c.trim()==='R3'), marc:r.findIndex(c=>c&&c.trim()==='Marc'),
-      gpos:r.findIndex(c=>c&&(c.trim()==='Gpos'||c.trim()==='Grupos')), fg8:r.findIndex(c=>c&&c.trim()==='8vos'),
+      gpos:r.findIndex(c=>c&&(c.trim()==='Gpos'||c.trim()==='Grupos')),
+      fg8:r.findIndex(c=>c&&c.trim()==='8vos'),
+      f4t:r.findIndex(c=>c&&(c.trim()==='4tos'||c.trim()==='Ctos'||c.trim()==='Cuartos')),
+      fsemi:r.findIndex(c=>c&&(c.trim()==='Semi'||c.trim()==='Semis')),
+      fcamp:r.findIndex(c=>c&&(c.trim()==='Camp'||c.trim()==='Campeon'||c.trim()==='Campeón'||c.trim()==='Final')),
       tot:ti, dif:r.findIndex(c=>c&&c.trim()==='Dif')>=0?r.findIndex(c=>c&&c.trim()==='Dif'):ti+1
     };
   }
-  return {hdr:1,rank:3,nombre:4,r1:5,r2:6,r3:7,marc:8,gpos:9,tot:14,dif:15};
+  return {hdr:1,rank:3,nombre:4,r1:5,r2:6,r3:7,marc:8,gpos:9,fg8:-1,f4t:-1,fsemi:-1,fcamp:-1,tot:14,dif:15};
 }
 
 function setMsg(m) {
@@ -396,7 +400,12 @@ async function loadAll() {
     // Fase Grupos total = resultados(r1+r2+r3) + marcadores(marc) + grupos(gpos)
     // NO duplicar: r1,r2,r3 YA incluyen los pts de marcadores y resultados
     pls.push({rank:parseInt(r[C.rank])||999, nombre, r1, r2, r3, marc, gpos,
-      exactos, resultados, fg:r1+r2+r3+gpos, fg8:C.fg8>=0?(parseInt(r[C.fg8])||0):0, tot, dif:parseInt(r[C.dif])||0});
+      exactos, resultados, fg:r1+r2+r3+gpos,
+      fg8:C.fg8>=0?(parseInt(r[C.fg8])||0):0,
+      f4t:C.f4t>=0?(parseInt(r[C.f4t])||0):0,
+      fsemi:C.fsemi>=0?(parseInt(r[C.fsemi])||0):0,
+      fcamp:C.fcamp>=0?(parseInt(r[C.fcamp])||0):0,
+      tot, dif:parseInt(r[C.dif])||0});
   }
   players=pls;
 
@@ -553,9 +562,11 @@ function renderTabla(pls) {
       <th onclick="sortByCol('tot')" class="${sortDir.col==='tot'?'sorted':''}">Total</th>
       <th onclick="sortByCol('dif')" style="color:var(--dorado)">Dif</th>
       <th onclick="sortByCol('marc')">Marc</th>
-      <th onclick="sortByCol('gpos')">Grupos</th>
-      <th onclick="sortByCol('fg')">Fase G.</th>
+      <th onclick="sortByCol('gpos')" class="hide-mob">Grupos</th>
       <th onclick="sortByCol('fg8')" style="color:var(--azul)">8vos</th>
+      <th onclick="sortByCol('f4t')" style="color:var(--verde)">4tos</th>
+      <th onclick="sortByCol('fsemi')" style="color:var(--verde)">Semi</th>
+      <th onclick="sortByCol('fcamp')" style="color:var(--dorado)">3/Camp</th>
     </tr></thead>
     <tbody>
     ${pls.map((p,i)=>{
@@ -570,9 +581,11 @@ function renderTabla(pls) {
         <td class="pts">${p.tot}</td>
         <td class="dif ${p.dif===0?'zero':''}" style="color:var(--dorado);font-weight:600">${difStr}</td>
         <td style="font-family:JetBrains Mono,monospace;font-size:11px" title="R1:${p.r1} · R2:${p.r2} · R3:${p.r3}">${p.r1+p.r2+p.r3}</td>
-        <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px">${p.gpos}</td>
-        <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--verde)">${p.fg}</td>
+        <td class="hide-mob" style="font-family:JetBrains Mono,monospace;font-size:11px">${p.gpos||'-'}</td>
         <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--azul)">${p.fg8||'-'}</td>
+        <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--verde)">${p.f4t||'-'}</td>
+        <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--verde)">${p.fsemi||'-'}</td>
+        <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--dorado)">${p.fcamp||'-'}</td>
       </tr>`;
     }).join('')}
     </tbody></table>`;
@@ -1947,6 +1960,9 @@ function showBracket(nombre){
       <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--text)">${p.marc} pts</div><div style="font-size:12px;font-weight:600;color:var(--text)">marcadores</div></div>
       <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--azul)">${p.gpos} pts</div><div style="font-size:12px;font-weight:600;color:var(--azul)">grupos</div></div>
       <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--azul)">${p.fg8||0} pts</div><div style="font-size:12px;font-weight:600;color:var(--azul)">8vos</div></div>
+      <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--verde)">${p.f4t||0} pts</div><div style="font-size:12px;font-weight:600;color:var(--verde)">4tos</div></div>
+      <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--verde)">${p.fsemi||0} pts</div><div style="font-size:12px;font-weight:600;color:var(--verde)">Semi</div></div>
+      <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--dorado)">${p.fcamp||0} pts</div><div style="font-size:12px;font-weight:600;color:var(--dorado)">3er/Camp</div></div>
       <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:${p.dif===0?'var(--dorado)':'var(--text)'}">${p.dif===0?'LÍDER':p.dif+' pts'}</div><div style="font-size:12px;font-weight:600;color:var(--text2)">del líder · #${p.rank}</div></div>
     </div>`:'';
   document.getElementById('bracket-cont').innerHTML=`
@@ -2060,12 +2076,12 @@ function buildTennisDraw(nombre){
 
   // Para Octavos: played = el equipo YA tiene resultado conocido de sus 16avos
   const oct16played = v => realOct16N.has(norm(v)) || eOct16.has(norm(v)) || eGrupos.has(norm(v));
-  // Para Cuartos: played = hay resultados reales de 8vos (todos los 8vos se juegan en bloque)
-  const cto8played  = realCto.size > 0;
-  // Para Semis: played = hay resultados reales de cuartos
-  const semi4played = realSemi.size > 0;
-  // Para Final: played = hay resultados reales de semis
-  const fin2played  = realFin.size > 0;
+  // Para Cuartos: played = el equipo YA tiene resultado conocido de sus 8vos
+  const cto8played  = v => realCtoN.has(norm(v)) || eCto.has(norm(v)) || eOct16.has(norm(v)) || eGrupos.has(norm(v));
+  // Para Semis: played = el equipo YA tiene resultado conocido de sus cuartos
+  const semi4played = v => realSemiN.has(norm(v)) || eSemi.has(norm(v)) || eCto.has(norm(v)) || eOct16.has(norm(v)) || eGrupos.has(norm(v));
+  // Para Final: played = el equipo YA tiene resultado conocido de sus semis
+  const fin2played  = v => realFinN.has(norm(v)) || eFin.has(norm(v)) || eSemi.has(norm(v)) || eCto.has(norm(v)) || eOct16.has(norm(v)) || eGrupos.has(norm(v));
 
   const mkColor = (v, realSetN, thisPlayed) => {
     if(!v||v==='?'||v==='3ro?') return 'var(--text3)';
@@ -2180,8 +2196,8 @@ function buildTennisDraw(nombre){
     // Celda Cuartos
     if(isFirstInCto){
       const ca_t=cto[cto_i*2]||'?', cb_t=cto[cto_i*2+1]||'?';
-      const ca=mkColor(ca_t,realCtoN,cto8played), cb=mkColor(cb_t,realCtoN,cto8played);
-      const ba=mkBadge(ca_t,realCtoN,6,cto8played), bb=mkBadge(cb_t,realCtoN,6,cto8played);
+      const ca=mkColor(ca_t,realCtoN,cto8played(ca_t)), cb=mkColor(cb_t,realCtoN,cto8played(cb_t));
+      const ba=mkBadge(ca_t,realCtoN,6,cto8played(ca_t)), bb=mkBadge(cb_t,realCtoN,6,cto8played(cb_t));
       tds+=`<td rowspan="8" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*8}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2199,8 +2215,8 @@ function buildTennisDraw(nombre){
     // Celda Semis
     if(isFirstInSemi){
       const sa=semi[semi_i*2]||'?', sb=semi[semi_i*2+1]||'?';
-      const ca=mkColor(sa,realSemiN,semi4played), cb=mkColor(sb,realSemiN,semi4played);
-      const ba=mkBadge(sa,realSemiN,8,semi4played), bb=mkBadge(sb,realSemiN,8,semi4played);
+      const ca=mkColor(sa,realSemiN,semi4played(sa)), cb=mkColor(sb,realSemiN,semi4played(sb));
+      const ba=mkBadge(sa,realSemiN,8,semi4played(sa)), bb=mkBadge(sb,realSemiN,8,semi4played(sb));
       tds+=`<td rowspan="16" style="vertical-align:middle;border:none;padding:0 4px;height:${EH*16}px">
         <div style="display:flex;align-items:center;justify-content:center;height:100%">
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
@@ -2219,8 +2235,8 @@ function buildTennisDraw(nombre){
     if(isFirstInFin){
       const fa=fin[0]||'?', fb=fin[1]||'?';
       const realChampSetN=new Set([norm(rChamp)].filter(v=>v));
-      const ca=mkColor(fa,realFinN,fin2played), cb=mkColor(fb,realFinN,fin2played);
-      const ba=mkBadge(fa,realFinN,10,fin2played), bb=mkBadge(fb,realFinN,10,fin2played);
+      const ca=mkColor(fa,realFinN,fin2played(fa)), cb=mkColor(fb,realFinN,fin2played(fb));
+      const ba=mkBadge(fa,realFinN,10,fin2played(fa)), bb=mkBadge(fb,realFinN,10,fin2played(fb));
       tds+=`<td rowspan="32" style="vertical-align:middle;border:none;padding:0 4px">
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;overflow:hidden;width:110px">
           <div style="padding:0 7px;height:${EH}px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)">
