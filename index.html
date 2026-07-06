@@ -273,7 +273,7 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
       <div>
         <div class="bot-name">Claudinho ⚽🇲🇽</div>
         <div class="bot-desc">Seu quinieleiro digital · WC 2026</div>
-        <div class="bot-online" id="bot-status">⚙️ Respuestas automáticas (sin API key)</div>
+        <div class="bot-online" id="bot-status">🤖 IA Activa — Claudinho</div>
       </div>
     </div>
     <div class="chat-msgs" id="chat-msgs">
@@ -1843,11 +1843,29 @@ function saveKey(){
   apiKey=k;localStorage.setItem('claudinho_key',k);
   document.getElementById('key-row').style.display='none';
   document.getElementById('bot-status').textContent='🤖 IA Activa — Claude Sonnet ✅';
-  appendMsg('bot','Minha gente! Conectado con IA. Ahora mis respuestas son más completas. ¿Qué quieres saber?');
+  document.getElementById('key-toggle-btn').style.display='inline';
+  document.getElementById('key-in').value='';
+  appendMsg('bot','Minha gente! ¡Conectado con IA! Ahora mis respuestas son más completas y precisas. ¿Qué quieres saber de la quiniela? 🎉');
+}
+
+function clearKey(){
+  apiKey='';localStorage.removeItem('claudinho_key');
+  document.getElementById('key-row').style.display='flex';
+  document.getElementById('key-toggle-btn').style.display='none';
+  document.getElementById('bot-status').textContent='⚙️ Respuestas automáticas (sin API key)';
 }
 
 async function callClaude(sys,msg,maxT=800){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxT,system:sys,messages:[{role:'user',content:msg}]})});
+  const r=await fetch('https://claudinho-proxy.kestremadoyro.workers.dev',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:maxT,
+      system:sys,
+      messages:[{role:'user',content:msg}]
+    })
+  });
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+r.status);}
   return (await r.json()).content?.[0]?.text||'';
 }
@@ -1856,20 +1874,15 @@ async function sendChat(){
   const inp=document.getElementById('chat-in');const msg=inp.value.trim();if(!msg)return;
   appendMsg('user',msg);inp.value='';
   document.getElementById('chat-send').disabled=true;const tid=appendTyping();
-  if(apiKey){
-    try{
-      const sys='Eres Claudinho, niño quinieleiro brasileño 10 años. Mezclas español con portugues (minha gente,caramba,olha só,nossa,eita). Preciso con datos. 3-4 oraciones. NO dinero.\n'+getContext();
-      const txt=await callClaude(sys,msg);
-      removeTyping(tid);appendMsg('bot',txt);
-      document.getElementById('chat-send').disabled=false;return;
-    }catch(e){
-      console.warn('IA falló:',e.message);
-      if(e.message.includes('api-key')||e.message.includes('401')){apiKey='';localStorage.removeItem('claudinho_key');document.getElementById('key-row').style.display='flex';document.getElementById('bot-status').textContent='Online automático';}
-    }
+  try{
+    const sys='Eres Claudinho, un niño brasileño de 10 años fanático del fútbol y de las quinielas. Mezclas español con portugués (minha gente, caramba, olha só, nossa, eita). Eres preciso con datos, divertido y entusiasta. Máximo 4 oraciones. NUNCA menciones dinero ni premios.\n'+getContext();
+    const txt=await callClaude(sys,msg);
+    removeTyping(tid);appendMsg('bot',txt);
+  }catch(e){
+    console.warn('IA falló:',e.message);
+    removeTyping(tid);
+    appendMsg('bot',smartAnswer(msg));
   }
-  removeTyping(tid);
-  await new Promise(r=>setTimeout(r,500));
-  appendMsg('bot',smartAnswer(msg));
   document.getElementById('chat-send').disabled=false;
 }
 
@@ -1910,7 +1923,14 @@ function show(id){
 
 async function init(){
   if(isLoading)return;isLoading=true;
-  if(apiKey){document.getElementById('key-row').style.display='none';document.getElementById('bot-status').textContent='🤖 IA Activa — Claude Sonnet ✅';}
+  if(apiKey){
+    document.getElementById('key-row').style.display='none';
+    document.getElementById('bot-status').textContent='🤖 IA Activa — Claude Sonnet ✅';
+    document.getElementById('key-toggle-btn').style.display='inline';
+  } else {
+    document.getElementById('key-row').style.display='flex';
+    document.getElementById('key-toggle-btn').style.display='none';
+  }
   try{await loadAll();}
   catch(e){document.getElementById('tabla-cont').innerHTML='<div class="empty"><div class="icon">⚠️</div><p style="font-size:14px;font-weight:600;margin-bottom:8px">No se pudo conectar</p><p style="font-size:12px;color:var(--text3);margin-bottom:14px">'+e.message+'</p><button class="btn" onclick="isLoading=false;init()">🔄 Reintentar</button></div>';}
   finally{isLoading=false;}
