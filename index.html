@@ -542,18 +542,11 @@ function updateStats() {
 // TABLA
 // ══════════════════════════════════════════════
 function renderTabla(pls) {
-  // Calcular posición dinámica según el orden actual (no p.rank del sheet)
-  // Si hay empate en el valor ordenado, comparten posición
   const sortCol = sortDir.col;
-  const getVal = p => sortCol==='nombre' ? p.nombre : p[sortCol]??0;
-  let dynRank=[], lastVal=null, lastPos=0;
-  pls.forEach((p,i)=>{
-    const v=getVal(p);
-    if(i===0||v!==lastVal){ lastPos=i+1; lastVal=v; }
-    dynRank.push(lastPos);
-  });
-  const maxPos=dynRank[dynRank.length-1]||1;
-  const isOnlyTot = sortCol==='tot' || sortCol==='rank';
+
+  // POS siempre es el ranking real por puntos totales (p.rank), nunca cambia con el filtro
+  // top3 y isLast también se basan en el rank real, no en la posición en la lista actual
+  const maxRank = Math.max(...players.map(p=>p.rank));
 
   document.getElementById('tabla-cont').innerHTML=`<table>
     <thead><tr>
@@ -569,9 +562,9 @@ function renderTabla(pls) {
       <th onclick="sortByCol('fcamp')" style="color:var(--dorado)">3/Camp</th>
     </tr></thead>
     <tbody>
-    ${pls.map((p,i)=>{
-      const pos=dynRank[i];
-      const top3=pos<=3, isLast=pos>=maxPos&&pls.length>3;
+    ${pls.map((p)=>{
+      const pos=p.rank;
+      const top3=pos<=3, isLast=pos>=maxRank&&players.length>3;
       const medal=pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':isLast?'🔴':'';
       const rc=pos===1?'r1c':pos===2?'r2c':pos===3?'r3c':isLast?'rlc':'';
       const difStr=p.dif===0?'LÍDER':(p.dif<0?'-':'+')+ String(Math.abs(p.dif));
