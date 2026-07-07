@@ -325,6 +325,8 @@ let eliminadosSemi   = new Set();
 let eliminadosFin    = new Set();
 let gRealOct16  = new Set(); // ganadores reales de 16avos (global para getContext)
 let gRealCto    = new Set(); // ganadores reales de 8vos (global)
+let gRealSemi   = new Set(); // ganadores reales de cuartos (clasificados a semis)
+let gRealFin    = new Set(); // finalistas reales
 let apiKey = localStorage.getItem('claudinho_key') || '';
 let prevComments = JSON.parse(localStorage.getItem('claudinho_comments') || '[]');
 
@@ -472,7 +474,12 @@ async function loadAll() {
       const rGetG = col => { const v=realResults[col]?.trim(); return isTeam2(v)?v:null; };
       for(let i=0;i<16;i++){ const v=rGetG(278+i); if(v) gRealOct16.add(v); }
       for(let i=0;i<8;i++){  const v=rGetG(295+i); if(v) gRealCto.add(v); }
-      console.log('🌍 Clasificados 8vos:', [...gRealOct16].join(', '));
+      for(let i=0;i<4;i++){  const v=rGetG(304+i); if(v) gRealSemi.add(v); }
+      for(let i=0;i<2;i++){  const v=rGetG(309+i); if(v) gRealFin.add(v); }
+      console.log('🌍 8vos:', [...gRealOct16].join(', '));
+      console.log('🌍 Cuartos:', [...gRealCto].join(', '));
+      console.log('🌍 Semis:', [...gRealSemi].join(', '));
+      console.log('🌍 Final:', [...gRealFin].join(', '));
     } else {
       console.warn('⚠️ Sin realResults. ctrlRows.length=',ctrlRows.length,'qRows.length=',qRows.length);
       ctrlRows.slice(0,5).forEach((r,i)=>console.log('ctrlRow['+i+'] cols 275-285:', r.slice(275,285).join('|')));
@@ -1549,6 +1556,21 @@ function calcIntegrity(row){
   return total>0?Math.round(vivos/total*100):100;
 }
 
+function calcCampCounts(lines){
+  const camp={}, sub={}, ter={}, fin4={};
+  for(const l of lines){
+    const parts=l.split('|');
+    const get=(key)=>{ const p=parts.find(x=>x.startsWith(key+':')); return p?p.slice(key.length+1):'?'; };
+    const c=get('camp'), s=get('sub'), t=get('3ro'), f=get('4to');
+    if(c&&c!=='?') camp[c]=(camp[c]||0)+1;
+    if(s&&s!=='?'&&s!==c) sub[s]=(sub[s]||0)+1;
+    if(t&&t!=='?') ter[t]=(ter[t]||0)+1;
+    if(f&&f!=='?') fin4[f]=(fin4[f]||0)+1;
+  }
+  const fmt=obj=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k}:${v}`).join(', ');
+  return `Campeones pronosticados: ${fmt(camp)}\nSubcampeones pronosticados: ${fmt(sub)}\n3er lugar pronosticado: ${fmt(ter)}\n4to lugar pronosticado: ${fmt(fin4)}`;
+}
+
 function getAllBracketsContext(){
   if(!quinielaRows.length) return '';
   const lines=[];
@@ -1558,15 +1580,30 @@ function getAllBracketsContext(){
     const isT=v=>v&&v.trim()&&v.trim()!=='0'&&!/^\d+$/.test(v.trim())&&v.trim().length>1;
     const getT=col=>{const v=r[col]?.trim();return isT(v)?v:null;};
     const champ=getT(313)||'?';
-    const sub=getT(309)||getT(310)||'?'; // primer finalista predicho
     const ter=getT(312)||'?';
-    const cuarto=getT(304)||getT(305)||'?'; // primer semifinalista predicho
+    // Subcampeón = el finalista que NO es el campeón
+    const fin1=getT(309)||'?', fin2=getT(310)||'?';
+    const sub=champ!=='?'?(fin1===champ?fin2:fin1):(fin1!=='?'?fin1:fin2)||'?';
+    // 4to = el semifinalista que NO llegó a la final (primer semi que no coincide con finalistas)
+    const finSet=new Set([champ,sub].filter(v=>v!=='?'));
+    let cuarto='?';
+    for(let i=0;i<4;i++){ const v=getT(304+i); if(v&&!finSet.has(v)){cuarto=v;break;} }
     const p=players.find(x=>x.nombre===nombre);
     const maxPts=calcMaxPts(r);
     const integ=calcIntegrity(r);
-    lines.push(`${nombre}|#${p?.rank||'?'}|${p?.tot||0}pts|camp:${champ}|sub:${sub}|3ro:${ter}|4to:${cuarto}|maxPts:+${maxPts}|integ:${integ}%`);
+    // Validaciones lógicas
+    const errors=[];
+    if(champ!=='?'&&sub!=='?'&&champ===sub) errors.push('ERROR:mismo equipo campeón y subcampeón');
+    if(champ!=='?'&&ter!=='?'&&champ===ter) errors.push('ERROR:mismo equipo campeón y 3ro');
+    if(sub!=='?'&&ter!=='?'&&sub===ter) errors.push('ERROR:mismo equipo subcampeón y 3ro');
+    const norm=s=>(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const eAll=new Set([...eliminadosSet,...eliminadosOct16,...eliminadosCto,...eliminadosSemi,...eliminadosFin].map(norm));
+    if(champ!=='?'&&eAll.has(norm(champ))) errors.push(`NOTA:${champ} ya eliminado`);
+    const errStr=errors.length?` [${errors.join('|')}]`:'';
+    lines.push(`${nombre}|#${p?.rank||'?'}|${p?.tot||0}pts|camp:${champ}|sub:${sub}|3ro:${ter}|4to:${cuarto}|maxPts:+${maxPts}|integ:${integ}%${errStr}`);
   }
-  return '\nBRACKETS COMPLETOS (nombre|pos|pts|campeón|subcampeón|3ro|4to|ptsMaxRestantes|integridadBracket):\n'+lines.join('\n');
+  return '\nBRACKETS (nombre|pos|pts|campeón|sub|3ro|4to|maxPtsRestantes|integridadBracket|errores):\nREGLA: un mismo equipo NO puede ser campeón y subcampeón simultáneamente. Si aparece el mismo equipo en dos posiciones, es un error de captura.\n'+lines.join('\n')
+  +'\n\nCONTEOS PRE-CALCULADOS (para respuestas precisas):\n'+calcCampCounts(lines);
 }
 
 function getContext(){
@@ -1577,9 +1614,11 @@ function getContext(){
   const enrichedC=players.map(p=>({...p,exactosR:(allStatsC[p.nombre]?.exactos??0)}));
   const topEx=[...enrichedC].sort((a,b)=>b.exactosR-a.exactosR)[0];
 
-  // Estado del torneo
+  // Estado completo del torneo
   const en8vos=[...gRealOct16].join(', ')||'pendiente';
   const enCtos=[...gRealCto].join(', ')||'pendiente';
+  const enSemis=[...gRealSemi].join(', ')||'pendiente';
+  const enFinal=[...gRealFin].join(', ')||'pendiente';
   const hoy=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
 
   return `QUINIELA FIFA WC 2026 — ${hoy}
@@ -1587,13 +1626,18 @@ Participantes: ${players.length} | Promedio: ${avg}pts | Más exactos: ${topEx?.
 TABLA COMPLETA (nombre|pos|pts|dif|8vos|4tos|semi|3camp):
 ${players.map(p=>`${p.nombre}|#${p.rank}|${p.tot}pts|${p.dif}|${p.fg8||0}|${p.f4t||0}|${p.fsemi||0}|${p.fcamp||0}`).join('\n')}
 
-TORNEO WC 2026
-En 8vos: ${en8vos}
-En Cuartos: ${enCtos||'pendiente'}
-Eliminados grupos: ${[...eliminadosSet].join(', ')||'ninguno'}
-Eliminados 16avos: ${[...eliminadosOct16].join(', ')||'ninguno'}
-Fechas: 16avos 28jun-6jul | 8vos 8-11jul | Semis 14-15jul | Final 19jul MetLife NJ
-Puntuación: exacto=4 | resultado=1 | grupos(1ro=4,2do=3,3ro=2) | bracket(8vos=4,ctos=6,semi=8,final=10,camp=12,3ro=5)
+ESTADO REAL DEL TORNEO WC 2026 (ACTUALIZADO AL DÍA):
+✅ Clasificados a 8vos (ganaron 16avos): ${en8vos}
+✅ Clasificados a Cuartos (ganaron 8vos): ${enCtos}
+✅ En Semis (ganaron Cuartos): ${enSemis}
+✅ Finalistas (ganaron Semis): ${enFinal}
+❌ Eliminados en grupos: ${[...eliminadosSet].join(', ')||'ninguno'}
+❌ Eliminados en 16avos: ${[...eliminadosOct16].join(', ')||'ninguno'}
+❌ Eliminados en 8vos: ${[...eliminadosCto].join(', ')||'ninguno'}
+❌ Eliminados en Cuartos: ${[...eliminadosSemi].join(', ')||'ninguno'}
+IMPORTANTE: Equipos eliminados NO pueden ganar más puntos de bracket para ningún quinielero.
+Fechas: 8vos 8-11jul | Semis 14-15jul | Final 19jul MetLife NJ
+Puntuación: bracket(8vos=4,ctos=6,semi=8,final=10,camp=12,3ro=5)
 ${getAllBracketsContext()}`;
 }
 
