@@ -170,7 +170,7 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
   <button class="nb" onclick="show('eliminados')" id="btn-eliminados">❌ Eliminados</button>
   <button class="nb" onclick="show('comentarios')" id="btn-comentarios">📰 Crónica</button>
   <button class="nb" onclick="show('curiosos')" id="btn-curiosos">🧩 Curiosidades</button>
-  <button class="nb" onclick="show('claudinho')" id="btn-claudinho">🤖 Claudinho</button>
+  <button class="nb" onclick="show('claudinho')" id="btn-claudinho">🐆 Zayu</button>
 </div>
 </nav>
 <main>
@@ -243,12 +243,12 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
 </div>
 
 <div id="comentarios" class="sec">
-  <div class="sec-title">📰 Crónica de Claudinho</div>
+  <div class="sec-title">📰 Crónica de Zayu</div>
   <div id="comment-cont">
     <div class="comment-card">
       <div class="comment-meta">
-        <div class="comment-avatar">🧒</div>
-        <div><div class="comment-byline">Claudinho ⚽</div><div class="comment-date" id="comment-date-0">Cargando...</div></div>
+        <div class="comment-avatar">🐆</div>
+        <div><div class="comment-byline">Zayu ⚽</div><div class="comment-date" id="comment-date-0">Cargando...</div></div>
       </div>
       <div style="margin-bottom:8px"><span class="comment-tag tag-top">🏆 La Tabla</span></div>
       <div class="comment-headline" id="comment-hl-0">⏳ Generando crónica...</div>
@@ -265,31 +265,36 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
 </div>
 
 <div id="claudinho" class="sec">
-  <div class="sec-title">🤖 Claudinho</div>
+  <div class="sec-title">🐆 Zayu</div>
   
   <div class="bot-wrap">
-    <div class="bot-hdr">
-      <div class="bot-avatar">🧒</div>
-      <div>
-        <div class="bot-name">Claudinho ⚽🇲🇽</div>
-        <div class="bot-desc">Seu quinieleiro digital · WC 2026</div>
-        <div class="bot-online" id="bot-status">🤖 IA Activa — Claudinho</div>
+    <div class="bot-hdr" style="background:linear-gradient(135deg,#0a1f0a,#0d2e0d);border:1px solid rgba(0,200,83,.2);border-radius:var(--r) var(--r) 0 0;padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:0">
+        <img src="https://kikeestremadoyro.github.io/FIFA-WC2026-Pruebas/zayu.jpg" 
+             alt="Zayu" 
+             style="width:110px;height:110px;object-fit:cover;object-position:center top;flex-shrink:0">
+        <div style="padding:16px 18px">
+          <div class="bot-name" style="font-size:20px;letter-spacing:.5px">ZAYU 🐆⚽</div>
+          <div class="bot-desc" style="color:rgba(255,255,255,.7)">La mascota del WC 2026 · Tu analista de quiniela</div>
+          <div class="bot-online" id="bot-status" style="color:#4ade80;font-size:11px;margin-top:4px">🤖 IA Activa — Análisis en tiempo real</div>
+        </div>
       </div>
     </div>
     <div class="chat-msgs" id="chat-msgs">
-      <div class="msg bot"><div class="mbub">Olá quinieleiro! Sou o <strong>Claudinho</strong> ⚽🇲🇽<br><br>Pregúntame sobre posiciones, pronósticos, estadísticas... ¡todo de la quiniela!</div><div class="mtime">Ahora</div></div>
+      <div class="msg bot"><div class="mbub">¡Hola quinieleiros! Soy <strong>Zayu</strong> 🐆⚽, la mascota oficial del WC 2026.<br><br>Tengo acceso a toda la tabla, brackets y datos del torneo. ¡Pregúntame lo que quieras sobre la quiniela!</div><div class="mtime">Ahora</div></div>
     </div>
     <div class="quick-q">
-      <button class="qq" onclick="sendQ('¿Quién va en primer lugar?')">👑 Líder</button>
+      <button class="qq" onclick="sendQ('¿Quién va en primer lugar y cuánto le saca al segundo?')">👑 Líder</button>
       <button class="qq" onclick="sendQ('¿Cuántos pronosticaron a México campeón?')">🇲🇽 México</button>
       <button class="qq" onclick="sendQ('¿Quién tiene más marcadores exactos?')">🎯 Exactos</button>
-      <button class="qq" onclick="sendQ('¿Quién subió más hoy?')">📈 Subidas</button>
-      <button class="qq" onclick="sendQ('Dame un dato curioso')">🧩 Curioso</button>
-      <button class="qq" onclick="sendQ('¿Quién va último?')">🔴 Último</button>
-      <button class="qq" onclick="sendQ('¿Cuál es la diferencia entre el 1ro y el 2do?')">📏 Diferencia</button>
+      <button class="qq" onclick="sendQ('¿Quién subió más posiciones hoy?')">📈 Subidas</button>
+      <button class="qq" onclick="sendQ('Dame un dato curioso o sorprendente de la quiniela')">🧩 Curioso</button>
+      <button class="qq" onclick="sendQ('¿Quién va último y cuánto le falta?')">🔴 Último</button>
+      <button class="qq" onclick="sendQ('Si gana Argentina el mundial, ¿quiénes ganarían más puntos?')">🇦🇷 Argentina</button>
+      <button class="qq" onclick="sendQ('¿Quién tiene más posibilidades de ganar la quiniela?')">🏆 Pronóstico</button>
     </div>
     <div class="chat-in-row">
-      <input class="chat-in" type="text" id="chat-in" placeholder="Pregúntale a Claudinho..." onkeydown="if(event.key==='Enter')sendChat()">
+      <input class="chat-in" type="text" id="chat-in" placeholder="Pregúntale a Zayu..." onkeydown="if(event.key==='Enter')sendChat()">
       <button class="chat-send" id="chat-send" onclick="sendChat()">➤</button>
     </div>
   </div>
@@ -680,7 +685,7 @@ function showPlayer(nombre){
       </div>
     </div>  ${mq.html}
   <div style="margin-top:12px;padding:12px 16px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);font-size:12px;color:var(--text2)">
-    💬 ¿Quieres analizar esta quiniela con Claudinho?
+    💬 ¿Quieres analizar esta quiniela con Zayu?
     <button class="btn" style="font-size:11px;padding:5px 12px;margin-left:10px" onclick="show('claudinho');setTimeout(()=>{document.getElementById('chat-in').value='Analiza la quiniela de ${p.nombre.split(' ')[0]}';sendChat();},300)">Preguntarle a Claudinho</button>
   </div>`;
 }
@@ -1843,7 +1848,7 @@ async function genComment(){
   // Intentar con IA si hay API key
   if(apiKey){
     try{
-      const sys='Eres Claudinho, niño brasileño 10 años, apasionado del fútbol. Escribe EXACTAMENTE 3 comentarios ~50 palabras c/u sobre la quiniela. Temas OBLIGATORIOS: 1) top 3 del ranking y sus puntos/ventajas, 2) quién subió más posiciones y quién bajó más, 3) curiosidad sobre marcadores exactos/grupos/equipos eliminados/resultados sorpresa. Mezcla español con portugués (minha gente,caramba,olha só,nossa,eita). Llama a los participantes "quinieleiros". NUNCA menciones dinero ni premios. Responde SOLO JSON válido sin backticks: [{"tag":"La Tabla","headline":"...","body":"..."},{"tag":"Movimientos","headline":"...","body":"..."},{"tag":"Curiosidad","headline":"...","body":"..."}]';
+const sys='Eres Zayu 🐆, la mascota jaguar del WC 2026 y analista experto de esta quiniela. Escribe EXACTAMENTE 3 comentarios de ~60 palabras cada uno. Temas: 1) análisis del top 3 con puntos y ventajas concretas, 2) movimientos del día con números exactos, 3) dato analítico sobre brackets, eliminados o proyecciones. Sé preciso. NUNCA menciones dinero. Responde SOLO JSON sin backticks: [{\"tag\":\"La Tabla\",\"headline\":\"...\",\"body\":\"...\"},{\"tag\":\"Movimientos\",\"headline\":\"...\",\"body\":\"...\"},{\"tag\":\"Análisis\",\"headline\":\"...\",\"body\":\"...\"}]';
       const userMsg='Fecha: '+today+'\n'+getContext()+'\nResponde SOLO JSON.';
       const txt=await callClaude(sys,userMsg,900);
       const clean=txt.replace(/```json|```/g,'').trim();
@@ -1893,7 +1898,7 @@ async function callClaude(sys,msg,maxT=800){
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      model:'claude-haiku-4-5-20251001',
+      model:'claude-sonnet-4-6',
       max_tokens:maxT,
       system:sys,
       messages:[{role:'user',content:msg}]
@@ -1919,15 +1924,24 @@ async function sendChat(){
         break;
       }
     }
-    const sys=`Eres Claudinho, un niño brasileño de 10 años fanático del fútbol y experto en esta quiniela del WC 2026. Características:
-- Mezclas español con portugués (minha gente, caramba, olha só, nossa, eita, ô)
-- Eres preciso con los datos de la quiniela y del torneo
-- Eres divertido, entusiasta y bromista
-- Máximo 4 oraciones por respuesta
+    const sys=`Eres Zayu 🐆, la mascota jaguar oficial del FIFA World Cup 2026 (USA·México·Canadá). Eres el analista experto de esta quiniela con 118 participantes.
+
+PERSONALIDAD: Entusiasta, preciso, analítico. Hablas español con alguna expresión energética ocasional. Usas emojis con moderación. Puedes dar respuestas largas cuando el análisis lo amerita.
+
+CAPACIDADES DE ANÁLISIS:
+- Calculas escenarios: "si gana X, estos quinieleros suben"
+- Identifies tendencias: quién tiene momentum, quién está estancado
+- Compares brackets: quién tiene pronósticos similares
+- Proyectas posiciones: cuántos puntos puede ganar alguien en las rondas restantes
+- Detectas patrones: equipos más pronosticados como campeón, correlaciones
+
+REGLAS:
+- Máximo 6 oraciones para respuestas simples, más si el análisis lo requiere
 - NUNCA menciones dinero, apuestas ni premios
-- Si te preguntan por partidos futuros, dices las fechas aproximadas que sabes
-- Si te preguntan por un quinielero específico, buscas en los datos
-- Llamas a los participantes "quinieleiros"
+- Cuando analices "si gana X", busca en los datos quién tiene a X en su bracket (campeón, finalista, semis, cuartos)
+- Da números concretos, no generalidades
+- Si te preguntan por un quinielero, analiza su posición, bracket completo y posibilidades
+
 \n`+getContext()+extraCtx;
     const txt=await callClaude(sys,msg);
     removeTyping(tid);appendMsg('bot',txt);
