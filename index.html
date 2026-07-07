@@ -128,7 +128,8 @@ tbody td{padding:10px 14px;font-size:12px;white-space:nowrap}
 .grupo-box-hdr{padding:9px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
 .comment-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:14px}
 .comment-meta{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.comment-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#006622,#00aa33);display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid rgba(0,200,83,.2);flex-shrink:0}
+.comment-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#006622,#00aa33);display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid rgba(0,200,83,.2);flex-shrink:0;overflow:hidden}
+.comment-avatar img{width:100%;height:100%;object-fit:cover;object-position:center top}
 .comment-byline{font-weight:600;font-size:13px}.comment-date{font-size:11px;color:var(--text2)}
 .comment-headline{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;margin-bottom:8px;line-height:1.2}
 .comment-body{font-size:13px;color:var(--text);line-height:1.6}
@@ -170,7 +171,7 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
   <button class="nb" onclick="show('eliminados')" id="btn-eliminados">❌ Eliminados</button>
   <button class="nb" onclick="show('comentarios')" id="btn-comentarios">📰 Crónica</button>
   <button class="nb" onclick="show('curiosos')" id="btn-curiosos">🧩 Curiosidades</button>
-  <button class="nb" onclick="show('claudinho')" id="btn-claudinho">🐆 Zayu</button>
+  <button class="nb" onclick="show('claudinho')" id="btn-claudinho"><img src="https://kikeestremadoyro.github.io/FIFA-WC2026-Pruebas/zayu.jpg" style="width:16px;height:16px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px"> Zayu</button>
 </div>
 </nav>
 <main>
@@ -247,12 +248,12 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
   <div id="comment-cont">
     <div class="comment-card">
       <div class="comment-meta">
-        <div class="comment-avatar">🐆</div>
-        <div><div class="comment-byline">Zayu ⚽</div><div class="comment-date" id="comment-date-0">Cargando...</div></div>
+        <div class="comment-avatar"><img src="https://kikeestremadoyro.github.io/FIFA-WC2026-Pruebas/zayu.jpg" alt="Zayu"></div>
+        <div><div class="comment-byline">Zayu 🐆⚽</div><div class="comment-date" id="comment-date-0">Cargando...</div></div>
       </div>
       <div style="margin-bottom:8px"><span class="comment-tag tag-top">🏆 La Tabla</span></div>
       <div class="comment-headline" id="comment-hl-0">⏳ Generando crónica...</div>
-      <div class="comment-body" id="comment-b-0">Claudinho está analizando los datos del día...</div>
+      <div class="comment-body" id="comment-b-0">Zayu está analizando los datos del día...</div>
     </div>
     <div id="comment-extra"></div>
     <div id="comment-history"></div>
@@ -1509,6 +1510,65 @@ function buildFacts(){
 // ══════════════════════════════════════════════
 // CRÓNICA — 3 temas diarios, ~50 palabras c/u
 // ══════════════════════════════════════════════
+
+// Puntos máximos posibles restantes por ronda
+const PTS_MAX = { oct16:4, cto8:6, semi4:8, fin2:10, champ:12, ter:5 };
+
+function calcMaxPts(row){
+  if(!row) return 0;
+  const isT=v=>v&&v.trim()&&v.trim()!=='0'&&!/^\d+$/.test(v.trim())&&v.trim().length>1;
+  const getT=col=>{const v=row[col]?.trim();return isT(v)?v:null;};
+  const norm=s=>(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const eAll=new Set([...eliminadosSet,...eliminadosOct16,...eliminadosCto,...eliminadosSemi,...eliminadosFin].map(norm));
+
+  let max=0;
+  // 8vos: +4 por cada equipo predicho que siga vivo y no haya ganado aún sus 16avos
+  for(let i=0;i<16;i++){ const v=getT(278+i); if(v&&!eAll.has(norm(v))&&!gRealOct16.has(v)) max+=PTS_MAX.oct16; }
+  // Cuartos: +6 por cada equipo predicho que siga vivo
+  for(let i=0;i<8;i++){  const v=getT(295+i); if(v&&!eAll.has(norm(v))) max+=PTS_MAX.cto8; }
+  // Semis: +8
+  for(let i=0;i<4;i++){  const v=getT(304+i); if(v&&!eAll.has(norm(v))) max+=PTS_MAX.semi4; }
+  // Final: +10
+  for(let i=0;i<2;i++){  const v=getT(309+i); if(v&&!eAll.has(norm(v))) max+=PTS_MAX.fin2; }
+  // Campeón: +12, 3er lugar: +5
+  const champ=getT(313); if(champ&&!eAll.has(norm(champ))) max+=PTS_MAX.champ;
+  const ter=getT(312);   if(ter&&!eAll.has(norm(ter)))     max+=PTS_MAX.ter;
+  return max;
+}
+
+function calcIntegrity(row){
+  // % de equipos predichos en bracket que siguen vivos (no están eliminados)
+  if(!row) return 0;
+  const isT=v=>v&&v.trim()&&v.trim()!=='0'&&!/^\d+$/.test(v.trim())&&v.trim().length>1;
+  const getT=col=>{const v=row[col]?.trim();return isT(v)?v:null;};
+  const norm=s=>(s||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const eAll=new Set([...eliminadosSet,...eliminadosOct16,...eliminadosCto,...eliminadosSemi,...eliminadosFin].map(norm));
+  let total=0, vivos=0;
+  // Todos los equipos en bracket (16avos a campeón)
+  for(let i=278;i<=313;i++){ const v=getT(i); if(v){total++; if(!eAll.has(norm(v)))vivos++;} }
+  return total>0?Math.round(vivos/total*100):100;
+}
+
+function getAllBracketsContext(){
+  if(!quinielaRows.length) return '';
+  const lines=[];
+  for(const r of quinielaRows){
+    const nombre=r[4]?.trim();
+    if(!nombre||nombre==='Nombre'||isNaN(parseInt(r[5]||'x'))) continue;
+    const isT=v=>v&&v.trim()&&v.trim()!=='0'&&!/^\d+$/.test(v.trim())&&v.trim().length>1;
+    const getT=col=>{const v=r[col]?.trim();return isT(v)?v:null;};
+    const champ=getT(313)||'?';
+    const sub=getT(309)||getT(310)||'?'; // primer finalista predicho
+    const ter=getT(312)||'?';
+    const cuarto=getT(304)||getT(305)||'?'; // primer semifinalista predicho
+    const p=players.find(x=>x.nombre===nombre);
+    const maxPts=calcMaxPts(r);
+    const integ=calcIntegrity(r);
+    lines.push(`${nombre}|#${p?.rank||'?'}|${p?.tot||0}pts|camp:${champ}|sub:${sub}|3ro:${ter}|4to:${cuarto}|maxPts:+${maxPts}|integ:${integ}%`);
+  }
+  return '\nBRACKETS COMPLETOS (nombre|pos|pts|campeón|subcampeón|3ro|4to|ptsMaxRestantes|integridadBracket):\n'+lines.join('\n');
+}
+
 function getContext(){
   if(!players.length) return 'Sin datos.';
   const s=[...players].sort((a,b)=>b.tot-a.tot);
@@ -1518,39 +1578,23 @@ function getContext(){
   const topEx=[...enrichedC].sort((a,b)=>b.exactosR-a.exactosR)[0];
 
   // Estado del torneo
-  const eliminados=[...eliminadosSet,...eliminadosOct16].join(', ')||'ninguno';
   const en8vos=[...gRealOct16].join(', ')||'pendiente';
   const enCtos=[...gRealCto].join(', ')||'pendiente';
-
-  // Fecha actual
   const hoy=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
 
-  return `QUINIELA FIFA WC 2026 — Datos en tiempo real
-Fecha: ${hoy}
-Participantes: ${players.length} quinieleros
-Líder: ${s[0]?.nombre} ${s[0]?.tot}pts | 2do: ${s[1]?.nombre} ${s[1]?.tot}pts | 3ro: ${s[2]?.nombre} ${s[2]?.tot}pts
-Último: ${s[s.length-1]?.nombre} ${s[s.length-1]?.tot}pts | Promedio: ${avg}pts
-Más marcadores exactos: ${topEx?.nombre} (${topEx?.exactosR})
-TOP10: ${s.slice(0,10).map((p,i)=>`#${i+1} ${p.nombre.split(' ')[0]} ${p.tot}pts`).join(' | ')}
-TODOS (nombre:pts:posición): ${players.map(p=>`${p.nombre}:${p.tot}:#${p.rank}`).join(' | ')}
+  return `QUINIELA FIFA WC 2026 — ${hoy}
+Participantes: ${players.length} | Promedio: ${avg}pts | Más exactos: ${topEx?.nombre} (${topEx?.exactosR})
+TABLA COMPLETA (nombre|pos|pts|dif|8vos|4tos|semi|3camp):
+${players.map(p=>`${p.nombre}|#${p.rank}|${p.tot}pts|${p.dif}|${p.fg8||0}|${p.f4t||0}|${p.fsemi||0}|${p.fcamp||0}`).join('\n')}
 
-TORNEO FIFA WC 2026 — Estado actual
-Clasificados a 8vos de final: ${en8vos}
-Clasificados a Cuartos: ${enCtos||'pendiente'}
-Eliminados en grupos (no llegaron a 16avos): ${[...eliminadosSet].join(', ')||'ninguno'}
-Eliminados en 16avos: ${[...eliminadosOct16].join(', ')||'ninguno'}
-
-PARTIDOS DE 16AVOS — Formato: [Partido | Resultado real]
-1E vs 3ro: ${gRealOct16.size>0?'jugado':'pendiente'}
-Los 16avos se juegan del 28 jun al 6 jul 2026.
-Los 8vos de final se juegan del 8 al 11 jul 2026.
-Las Semis son el 14 y 15 jul. La Final es el 19 jul 2026 en el MetLife Stadium, Nueva Jersey.
-Sede: USA, México, Canadá. 48 equipos, 104 partidos totales.
-
-PUNTUACIÓN DE LA QUINIELA
-Marcador exacto: 4pts | Resultado correcto: 1pt
-Clasificados grupos: 1ro=4pts, 2do=3pts, 3ro que clasifica=2pts
-Bracket: 16avos→8vos=4pts | 8vos→Ctos=6pts | Ctos→Semi=8pts | Semi→Final=10pts | Final→Campeón=12pts | 3er lugar=5pts`;
+TORNEO WC 2026
+En 8vos: ${en8vos}
+En Cuartos: ${enCtos||'pendiente'}
+Eliminados grupos: ${[...eliminadosSet].join(', ')||'ninguno'}
+Eliminados 16avos: ${[...eliminadosOct16].join(', ')||'ninguno'}
+Fechas: 16avos 28jun-6jul | 8vos 8-11jul | Semis 14-15jul | Final 19jul MetLife NJ
+Puntuación: exacto=4 | resultado=1 | grupos(1ro=4,2do=3,3ro=2) | bracket(8vos=4,ctos=6,semi=8,final=10,camp=12,3ro=5)
+${getAllBracketsContext()}`;
 }
 
 // Respuestas predeterminadas sin API
@@ -1702,8 +1746,8 @@ function smartAnswer(msg){
 function comentCard(date, tagClass, tag, headline, body){
   return `<div class="comment-card">
     <div class="comment-meta">
-      <div class="comment-avatar">🧒</div>
-      <div><div class="comment-byline">Claudinho ⚽</div><div class="comment-date">${date}</div></div>
+      <div class="comment-avatar"><img src="https://kikeestremadoyro.github.io/FIFA-WC2026-Pruebas/zayu.jpg" alt="Zayu"></div>
+      <div><div class="comment-byline">Zayu 🐆⚽</div><div class="comment-date">${date}</div></div>
     </div>
     <div style="margin-bottom:6px"><span class="comment-tag ${tagClass}">${tag}</span></div>
     <div class="comment-headline">${headline}</div>
@@ -1845,12 +1889,15 @@ async function genComment(){
   // Cargar historial de días anteriores
   if(elHist) elHist.innerHTML=loadHistoryComments(_ckToday);
 
-  // Intentar con IA si hay API key
-  if(apiKey){
-    try{
-const sys='Eres Zayu 🐆, la mascota jaguar del WC 2026 y analista experto de esta quiniela. Escribe EXACTAMENTE 3 comentarios de ~60 palabras cada uno. Temas: 1) análisis del top 3 con puntos y ventajas concretas, 2) movimientos del día con números exactos, 3) dato analítico sobre brackets, eliminados o proyecciones. Sé preciso. NUNCA menciones dinero. Responde SOLO JSON sin backticks: [{\"tag\":\"La Tabla\",\"headline\":\"...\",\"body\":\"...\"},{\"tag\":\"Movimientos\",\"headline\":\"...\",\"body\":\"...\"},{\"tag\":\"Análisis\",\"headline\":\"...\",\"body\":\"...\"}]';
-      const userMsg='Fecha: '+today+'\n'+getContext()+'\nResponde SOLO JSON.';
-      const txt=await callClaude(sys,userMsg,900);
+  // Intentar con IA siempre (proxy Cloudflare maneja la key)
+  try{
+    // Resultados del día
+    const resultadosHoy = gRealOct16.size>0
+      ? `Clasificados a 8vos: ${[...gRealOct16].join(', ')}. Eliminados en 16avos: ${[...eliminadosOct16].join(', ')||'ninguno aún'}.`
+      : 'Resultados de 16avos pendientes.';
+    const sys='Eres Zayu 🐆, la mascota jaguar del WC 2026 y analista experto de esta quiniela. Escribe EXACTAMENTE 3 comentarios de ~70 palabras cada uno. Temas OBLIGATORIOS: 1) análisis del top 3 con puntos y ventajas concretas, 2) resultados de partidos del torneo de hoy/recientes y su impacto en la quiniela (quién subió, quién bajó), 3) dato analítico de brackets: quién tiene mejor integridad y más puntos potenciales. Sé preciso. NUNCA menciones dinero. Responde SOLO JSON sin backticks: [{"tag":"La Tabla","headline":"...","body":"..."},{"tag":"Resultados del Día","headline":"...","body":"..."},{"tag":"Brackets","headline":"...","body":"..."}]';
+    const userMsg='Fecha: '+today+'\n'+resultadosHoy+'\n'+getContext()+'\nResponde SOLO JSON válido.';
+    const txt=await callClaude(sys,userMsg,1000);
       const clean=txt.replace(/```json|```/g,'').trim();
       const parsed=JSON.parse(clean);
       if(Array.isArray(parsed)&&parsed.length>=3){
@@ -1872,7 +1919,6 @@ const sys='Eres Zayu 🐆, la mascota jaguar del WC 2026 y analista experto de e
       }
     }catch(e){
       console.warn('Crónica IA falló:',e.message);
-      // Guardar versión automática de igual modo
       const todayCards=[
         {date:today,tagClass:'tag-top',tag:'La Tabla',headline:hl1,body:body1},
         {date:today,tagClass:'tag-mov',tag:'Movimientos',headline:hl2,body:body2},
@@ -1881,16 +1927,6 @@ const sys='Eres Zayu 🐆, la mascota jaguar del WC 2026 y analista experto de e
       saveComment(_ckToday, todayCards);
       if(elHist) elHist.innerHTML=loadHistoryComments(_ckToday);
     }
-  } else {
-    // Sin API key: guardar versión automática
-    const todayCards=[
-      {date:today,tagClass:'tag-top',tag:'La Tabla',headline:hl1,body:body1},
-      {date:today,tagClass:'tag-mov',tag:'Movimientos',headline:hl2,body:body2},
-      {date:today,tagClass:'tag-cur',tag:'Curiosidad',headline:hl3,body:body3},
-    ];
-    saveComment(_ckToday, todayCards);
-    if(elHist) elHist.innerHTML=loadHistoryComments(_ckToday);
-  }
 }
 
 async function callClaude(sys,msg,maxT=800){
