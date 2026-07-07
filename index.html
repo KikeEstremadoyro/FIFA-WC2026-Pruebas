@@ -312,11 +312,13 @@ const csvUrl = gid => `${BASE}/pub?gid=${gid}&single=true&output=csv`;
 let players = [], sortDir = {col:'tot',asc:false};
 let quinielaRows = [], isLoading = false;
 let realResults = [];
-let eliminadosSet    = new Set(); // eliminados en grupos  → rojo en col 16avos
-let eliminadosOct16  = new Set(); // eliminados en 16avos  → rojo en col Octavos
-let eliminadosCto    = new Set(); // eliminados en 8vos    → rojo en col Cuartos
-let eliminadosSemi   = new Set(); // eliminados en cuartos → rojo en col Semis
-let eliminadosFin    = new Set(); // eliminados en semis   → rojo en col Final
+let eliminadosSet    = new Set();
+let eliminadosOct16  = new Set();
+let eliminadosCto    = new Set();
+let eliminadosSemi   = new Set();
+let eliminadosFin    = new Set();
+let gRealOct16  = new Set(); // ganadores reales de 16avos (global para getContext)
+let gRealCto    = new Set(); // ganadores reales de 8vos (global)
 let apiKey = localStorage.getItem('claudinho_key') || '';
 let prevComments = JSON.parse(localStorage.getItem('claudinho_comments') || '[]');
 
@@ -460,11 +462,13 @@ async function loadAll() {
     }
 
     if(realResults.length){
-      const ganadores = Array.from({length:16},(_,i)=>realResults[278+i]).filter(Boolean);
-      console.log('🏆 Ganadores 16avos detectados:', ganadores.join(', '));
+      const isTeam2 = v => v && v.trim().length>1 && isNaN(parseInt(v.trim()));
+      const rGetG = col => { const v=realResults[col]?.trim(); return isTeam2(v)?v:null; };
+      for(let i=0;i<16;i++){ const v=rGetG(278+i); if(v) gRealOct16.add(v); }
+      for(let i=0;i<8;i++){  const v=rGetG(295+i); if(v) gRealCto.add(v); }
+      console.log('🌍 Clasificados 8vos:', [...gRealOct16].join(', '));
     } else {
       console.warn('⚠️ Sin realResults. ctrlRows.length=',ctrlRows.length,'qRows.length=',qRows.length);
-      // Log primeras 5 filas de ctrlRows para diagnóstico
       ctrlRows.slice(0,5).forEach((r,i)=>console.log('ctrlRow['+i+'] cols 275-285:', r.slice(275,285).join('|')));
     }
   } catch(e) { console.warn('Error cargando realResults:', e.message); }
@@ -1507,14 +1511,41 @@ function getContext(){
   const allStatsC=calcAllStats();
   const enrichedC=players.map(p=>({...p,exactosR:(allStatsC[p.nombre]?.exactos??0)}));
   const topEx=[...enrichedC].sort((a,b)=>b.exactosR-a.exactosR)[0];
-  const zeroGpos=players.filter(p=>p.gpos===0).map(p=>p.nombre.split(' ')[0]).slice(0,3);
-  return `QUINIELA FIFA WC 2026 - ${players.length} quinieleiros - Fase Grupos
-Líder: ${s[0].nombre} ${s[0].tot}pts (2do: ${s[1].nombre} ${s[1].tot}pts, ventaja ${s[0].tot-s[1].tot}pts)
-3ro: ${s[2].nombre} ${s[2].tot}pts | Último: ${s[s.length-1].nombre} ${s[s.length-1].tot}pts
-Promedio: ${avg}pts | Más exactos: ${topEx.nombre} (${topEx.exactosR})
-Sin pts grupos: ${zeroGpos.join(', ')||'ninguno'}
-TOP5: ${s.slice(0,5).map((p,i)=>`#${i+1} ${p.nombre.split(' ')[0]} ${p.tot}`).join(' | ')}
-TODOS: ${players.map(p=>`${p.nombre}:${p.tot}:#${p.rank}`).join(',')}`;
+
+  // Estado del torneo
+  const eliminados=[...eliminadosSet,...eliminadosOct16].join(', ')||'ninguno';
+  const en8vos=[...gRealOct16].join(', ')||'pendiente';
+  const enCtos=[...gRealCto].join(', ')||'pendiente';
+
+  // Fecha actual
+  const hoy=new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+
+  return `QUINIELA FIFA WC 2026 — Datos en tiempo real
+Fecha: ${hoy}
+Participantes: ${players.length} quinieleros
+Líder: ${s[0]?.nombre} ${s[0]?.tot}pts | 2do: ${s[1]?.nombre} ${s[1]?.tot}pts | 3ro: ${s[2]?.nombre} ${s[2]?.tot}pts
+Último: ${s[s.length-1]?.nombre} ${s[s.length-1]?.tot}pts | Promedio: ${avg}pts
+Más marcadores exactos: ${topEx?.nombre} (${topEx?.exactosR})
+TOP10: ${s.slice(0,10).map((p,i)=>`#${i+1} ${p.nombre.split(' ')[0]} ${p.tot}pts`).join(' | ')}
+TODOS (nombre:pts:posición): ${players.map(p=>`${p.nombre}:${p.tot}:#${p.rank}`).join(' | ')}
+
+TORNEO FIFA WC 2026 — Estado actual
+Clasificados a 8vos de final: ${en8vos}
+Clasificados a Cuartos: ${enCtos||'pendiente'}
+Eliminados en grupos (no llegaron a 16avos): ${[...eliminadosSet].join(', ')||'ninguno'}
+Eliminados en 16avos: ${[...eliminadosOct16].join(', ')||'ninguno'}
+
+PARTIDOS DE 16AVOS — Formato: [Partido | Resultado real]
+1E vs 3ro: ${realOct16.size>0?'jugado':'pendiente'}
+Los 16avos se juegan del 28 jun al 6 jul 2026.
+Los 8vos de final se juegan del 8 al 11 jul 2026.
+Las Semis son el 14 y 15 jul. La Final es el 19 jul 2026 en el MetLife Stadium, Nueva Jersey.
+Sede: USA, México, Canadá. 48 equipos, 104 partidos totales.
+
+PUNTUACIÓN DE LA QUINIELA
+Marcador exacto: 4pts | Resultado correcto: 1pt
+Clasificados grupos: 1ro=4pts, 2do=3pts, 3ro que clasifica=2pts
+Bracket: 16avos→8vos=4pts | 8vos→Ctos=6pts | Ctos→Semi=8pts | Semi→Final=10pts | Final→Campeón=12pts | 3er lugar=5pts`;
 }
 
 // Respuestas predeterminadas sin API
@@ -1531,6 +1562,26 @@ function getPlayerMatchData(nombre, grupoLetra, partidoNum){
   if(!s1&&!s2) return null;
   const matchName = GRUPOS_INFO[grupoLetra.toUpperCase()]?.matches[partidoNum-1]||'';
   return {s1,s2,pts,matchName,score:`${s1}-${s2}`};
+}
+
+function getBracketContext(nombre){
+  let row=null;
+  for(const r of quinielaRows){if(r[4]&&r[4].trim()===nombre){row=r;break;}}
+  if(!row) return '';
+  const isT=v=>v&&v.trim()&&v.trim()!=='0'&&!/^\d+$/.test(v.trim())&&v.trim().length>1;
+  const getT=col=>{const v=row[col]?.trim();return isT(v)?v:null;};
+  const oct=[];  for(let i=0;i<16;i++){const v=getT(278+i);if(v)oct.push(v);}
+  const cto=[];  for(let i=0;i<8;i++){ const v=getT(295+i);if(v)cto.push(v);}
+  const semi=[]; for(let i=0;i<4;i++){ const v=getT(304+i);if(v)semi.push(v);}
+  const fin=[];  for(let i=0;i<2;i++){ const v=getT(309+i);if(v)fin.push(v);}
+  const ter=getT(312)||'?', champ=getT(313)||'?';
+  const p=players.find(x=>x.nombre===nombre);
+  return `\nBRACKET DE ${nombre.toUpperCase()} (${p?.tot||0}pts, #${p?.rank||'?'}):
+En 8vos predijo: ${oct.join(', ')||'?'}
+En Cuartos predijo: ${cto.join(', ')||'?'}
+En Semis predijo: ${semi.join(', ')||'?'}
+Finalistas predichos: ${fin.join(', ')||'?'}
+3er lugar predicho: ${ter} | Campeón predicho: ${champ}`;
 }
 
 function smartAnswer(msg){
@@ -1837,24 +1888,6 @@ async function genComment(){
   }
 }
 
-function saveKey(){
-  const k=document.getElementById('key-in').value.trim();
-  if(!k.startsWith('sk-ant-')){alert('Key debe empezar con sk-ant-');return;}
-  apiKey=k;localStorage.setItem('claudinho_key',k);
-  document.getElementById('key-row').style.display='none';
-  document.getElementById('bot-status').textContent='🤖 IA Activa — Claude Sonnet ✅';
-  document.getElementById('key-toggle-btn').style.display='inline';
-  document.getElementById('key-in').value='';
-  appendMsg('bot','Minha gente! ¡Conectado con IA! Ahora mis respuestas son más completas y precisas. ¿Qué quieres saber de la quiniela? 🎉');
-}
-
-function clearKey(){
-  apiKey='';localStorage.removeItem('claudinho_key');
-  document.getElementById('key-row').style.display='flex';
-  document.getElementById('key-toggle-btn').style.display='none';
-  document.getElementById('bot-status').textContent='⚙️ Respuestas automáticas (sin API key)';
-}
-
 async function callClaude(sys,msg,maxT=800){
   const r=await fetch('https://claudinho-proxy.kestremadoyro.workers.dev',{
     method:'POST',
@@ -1875,7 +1908,27 @@ async function sendChat(){
   appendMsg('user',msg);inp.value='';
   document.getElementById('chat-send').disabled=true;const tid=appendTyping();
   try{
-    const sys='Eres Claudinho, un niño brasileño de 10 años fanático del fútbol y de las quinielas. Mezclas español con portugués (minha gente, caramba, olha só, nossa, eita). Eres preciso con datos, divertido y entusiasta. Máximo 4 oraciones. NUNCA menciones dinero ni premios.\n'+getContext();
+    // Detectar si pregunta por un quinielero específico y agregar su bracket
+    let extraCtx='';
+    const msgLow=msg.toLowerCase();
+    for(const p of players){
+      const apellido=p.nombre.split(' ')[0].toLowerCase();
+      const nombre2=p.nombre.split(' ').slice(0,2).join(' ').toLowerCase();
+      if(msgLow.includes(apellido)||msgLow.includes(nombre2)){
+        extraCtx+=getBracketContext(p.nombre);
+        break;
+      }
+    }
+    const sys=`Eres Claudinho, un niño brasileño de 10 años fanático del fútbol y experto en esta quiniela del WC 2026. Características:
+- Mezclas español con portugués (minha gente, caramba, olha só, nossa, eita, ô)
+- Eres preciso con los datos de la quiniela y del torneo
+- Eres divertido, entusiasta y bromista
+- Máximo 4 oraciones por respuesta
+- NUNCA menciones dinero, apuestas ni premios
+- Si te preguntan por partidos futuros, dices las fechas aproximadas que sabes
+- Si te preguntan por un quinielero específico, buscas en los datos
+- Llamas a los participantes "quinieleiros"
+\n`+getContext()+extraCtx;
     const txt=await callClaude(sys,msg);
     removeTyping(tid);appendMsg('bot',txt);
   }catch(e){
@@ -1923,14 +1976,6 @@ function show(id){
 
 async function init(){
   if(isLoading)return;isLoading=true;
-  if(apiKey){
-    document.getElementById('key-row').style.display='none';
-    document.getElementById('bot-status').textContent='🤖 IA Activa — Claude Sonnet ✅';
-    document.getElementById('key-toggle-btn').style.display='inline';
-  } else {
-    document.getElementById('key-row').style.display='flex';
-    document.getElementById('key-toggle-btn').style.display='none';
-  }
   try{await loadAll();}
   catch(e){document.getElementById('tabla-cont').innerHTML='<div class="empty"><div class="icon">⚠️</div><p style="font-size:14px;font-weight:600;margin-bottom:8px">No se pudo conectar</p><p style="font-size:12px;color:var(--text3);margin-bottom:14px">'+e.message+'</p><button class="btn" onclick="isLoading=false;init()">🔄 Reintentar</button></div>';}
   finally{isLoading=false;}
