@@ -168,7 +168,7 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
   <button class="nb" onclick="show('profetas')" id="btn-profetas">🔮 Profetas</button>
   <button class="nb" onclick="show('nominados')" id="btn-nominados">🎖 Nominados</button>
   <button class="nb" onclick="show('grupos')" id="btn-grupos">📊 Grupos</button>
-  <button class="nb" onclick="show('eliminados')" id="btn-eliminados">❌ Eliminados</button>
+  <button class="nb" onclick="show('eliminados')" id="btn-eliminados">🏆 Posiciones</button>
   <button class="nb" onclick="show('comentarios')" id="btn-comentarios">📰 Crónica</button>
   <button class="nb" onclick="show('curiosos')" id="btn-curiosos">🧩 Curiosidades</button>
   <button class="nb" onclick="show('claudinho')" id="btn-claudinho"><img src="https://kikeestremadoyro.github.io/FIFA-WC2026-Pruebas/zayu.jpg" style="width:16px;height:16px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px"> Zayu</button>
@@ -229,7 +229,7 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
 
 <div id="nominados" class="sec">
   <div class="sec-title">🎖 Nominados</div>
-  <p style="color:var(--text2);font-size:13px;margin-bottom:20px">Rankings destacados — el torneo sigue en curso.</p>
+  <p style="color:var(--text2);font-size:13px;margin-bottom:20px">Rankings finales de la quiniela · Mundial terminado el 19 de julio 2026</p>
   <div class="nom-grid" id="nom-cont"><div class="loading"><div class="spinner"></div><p>Calculando...</p></div></div>
 </div>
 
@@ -239,8 +239,106 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
 </div>
 
 <div id="eliminados" class="sec">
-  <div class="sec-title">❌ Eliminados</div>
-  <div id="eliminados-cont"><div class="loading"><div class="spinner"></div><p>Calculando...</p></div></div>
+  <div class="sec-title">🏆 Posiciones del Mundial</div>
+  <p style="color:var(--text2);font-size:13px;margin-bottom:16px">Posiciones finales de los 48 equipos · FIFA World Cup 2026</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+    <!-- Podio -->
+    <div style="grid-column:1/-1;display:flex;gap:10px;justify-content:center;margin-bottom:8px">
+      <div style="text-align:center;padding:16px 24px;background:linear-gradient(135deg,rgba(255,215,0,.15),rgba(255,215,0,.05));border:2px solid var(--dorado);border-radius:12px">
+        <div style="font-size:32px">🥇</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--dorado)">España</div>
+        <div style="font-size:11px;color:var(--text2)">1-0 ET vs Argentina</div>
+      </div>
+      <div style="text-align:center;padding:16px 24px;background:rgba(192,192,192,.1);border:2px solid #8a8a8a;border-radius:12px">
+        <div style="font-size:32px">🥈</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#8a8a8a">Argentina</div>
+        <div style="font-size:11px;color:var(--text2)">Finalista</div>
+      </div>
+      <div style="text-align:center;padding:16px 24px;background:rgba(205,127,50,.1);border:2px solid #CD7F32;border-radius:12px">
+        <div style="font-size:32px">🥉</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#CD7F32">Inglaterra</div>
+        <div style="font-size:11px;color:var(--text2)">6-4 vs Francia</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla completa -->
+  <div style="overflow-x:auto">
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead>
+      <tr style="background:var(--bg3);border-bottom:2px solid var(--border)">
+        <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text2)">#</th>
+        <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text2)">Equipo</th>
+        <th style="padding:8px 10px;text-align:center;font-weight:700;color:var(--text2)">Fase</th>
+        <th style="padding:8px 10px;text-align:center;font-weight:700;color:var(--text2)">Eliminado por</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${[
+        [1,'España','🥇 Campeón','—'],
+        [2,'Argentina','🥈 Final','España (1-0 ET)'],
+        [3,'Inglaterra','🥉 3er Lugar','—'],
+        [4,'Francia','4to Lugar','Inglaterra (4-6)'],
+        [5,'Marruecos','Cuartos','Francia (0-2)'],
+        [5,'Noruega','Cuartos','Argentina (1-2 ET)'],
+        [5,'Bélgica','Cuartos','España (1-2)'],
+        [5,'Suiza','Cuartos','Argentina (1-3)'],
+        [9,'Brasil','16avos','Noruega'],
+        [9,'Portugal','16avos','España'],
+        [9,'México','16avos','Inglaterra (2-3)'],
+        [9,'Canadá','16avos','Marruecos'],
+        [9,'USA','16avos','Bélgica (1-4)'],
+        [9,'Paraguay','16avos','Francia'],
+        [9,'Colombia','16avos','Suiza (pen)'],
+        [9,'Egipto','16avos','Argentina (2-3)'],
+        [17,'Alemania','32avos','Paraguay'],
+        [17,'Holanda','32avos','Marruecos (pen)'],
+        [17,'Suecia','32avos','Francia'],
+        [17,'Escocia','32avos','México'],
+        [17,'Uruguay','32avos','Bélgica'],
+        [17,'Senegal','32avos','Argentina'],
+        [17,'Japón','32avos','Brasil'],
+        [17,'Ecuador','32avos','México'],
+        [17,'Australia','32avos','Suiza'],
+        [17,'Austria','32avos','España'],
+        [17,'Croacia','32avos','México'],
+        [17,'Ghana','32avos','Noruega'],
+        [17,'Argelia','32avos','Suiza'],
+        [17,'RD Congo','32avos','Inglaterra'],
+        [17,'Bosnia','32avos','USA'],
+        [17,'Costa de Marfil','32avos','Noruega'],
+        [33,'Irak','Grupos','—'],
+        [33,'Tunisia','Grupos','—'],
+        [33,'Uzbekistán','Grupos','—'],
+        [33,'Haití','Grupos','—'],
+        [33,'Jordania','Grupos','—'],
+        [33,'Panamá','Grupos','—'],
+        [33,'Catar','Grupos','—'],
+        [33,'Curazao','Grupos','—'],
+        [33,'N.Zelanda','Grupos','—'],
+        [33,'Chequia','Grupos','—'],
+        [33,'Arabia','Grupos','—'],
+        [33,'Korea','Grupos','—'],
+        [33,'Irán','Grupos','—'],
+        [33,'Sudáfrica','Grupos','—'],
+        [33,'Turquía','Grupos','—'],
+        [33,'Cabo Verde','Grupos','—'],
+      ].map(([pos,equipo,fase,elim])=>{
+        const isCamp=pos===1, isSub=pos===2, is3ro=pos===3, is4to=pos===4;
+        const isKO8=pos===5, isKO16=pos===9, isKO32=pos===17, isGrupos=pos===33;
+        const bg=isCamp?'rgba(255,215,0,.08)':isSub?'rgba(192,192,192,.06)':is3ro?'rgba(205,127,50,.06)':'';
+        const color=isCamp?'var(--dorado)':isSub?'#8a8a8a':is3ro?'#CD7F32':is4to?'var(--naranja)':isKO8?'var(--verde)':isKO16?'var(--azul)':isKO32?'var(--text2)':'var(--text3)';
+        return `<tr style="border-bottom:1px solid var(--border);background:${bg}">
+          <td style="padding:7px 10px;font-weight:700;color:${color}">${pos}</td>
+          <td style="padding:7px 10px;font-weight:${pos<=4?'700':'400'};color:${color}">${equipo}</td>
+          <td style="padding:7px 10px;text-align:center;font-size:11px;color:${color}">${fase}</td>
+          <td style="padding:7px 10px;text-align:center;font-size:11px;color:var(--text3)">${elim}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+  </div>
 </div>
 
 <div id="comentarios" class="sec">
@@ -1645,8 +1743,16 @@ ESTADO REAL DEL TORNEO WC 2026 (ACTUALIZADO AL DÍA):
 ❌ Eliminados en 8vos: ${[...eliminadosCto].join(', ')||'ninguno'}
 ❌ Eliminados en Cuartos: ${[...eliminadosSemi].join(', ')||'ninguno'}
 IMPORTANTE: Equipos eliminados NO pueden ganar más puntos de bracket para ningún quinielero.
-Fechas: 8vos 8-11jul | Semis 14-15jul | Final 19jul MetLife NJ
-Puntuación: bracket(8vos=4,ctos=6,semi=8,final=10,camp=12,3ro=5)
+RESULTADOS FINALES FIFA WC 2026:
+🥇 Campeón: España (venció a Argentina 1-0 ET en MetLife Stadium, 19 jul)
+🥈 Subcampeón: Argentina
+🥉 3er lugar: Inglaterra (venció a Francia 6-4 en Miami)
+4to: Francia
+Cuartos (5-8): Marruecos, Noruega, Bélgica, Suiza
+16avos (9-16): Brasil(11), Portugal, México, Canadá, USA, Paraguay, Colombia, Egipto
+Ruta de España: Cabo Verde(0-0)→Arabia→Uruguay→Austria→Portugal→Bélgica→Francia(Semi 2-0)→Argentina(Final 1-0ET)
+Ruta de Argentina: Paraguay→Cabo Verde→Egipto(3-2 remontada)→Suiza(3-1ET)→Inglaterra(Semi 2-1)→España(Final 0-1ET)
+Goleadores: Mbappé y Messi líderes del Botín de Oro, Saka hat-trick en 3er lugar
 ${getAllBracketsContext()}`;
 }
 
@@ -1948,7 +2054,7 @@ async function genComment(){
     const resultadosHoy = gRealOct16.size>0
       ? `Clasificados a 8vos: ${[...gRealOct16].join(', ')}. Eliminados en 16avos: ${[...eliminadosOct16].join(', ')||'ninguno aún'}.`
       : 'Resultados de 16avos pendientes.';
-    const sys='Eres Zayu 🐆, la mascota jaguar del WC 2026 y analista experto de esta quiniela. Escribe EXACTAMENTE 3 comentarios de ~70 palabras cada uno. Temas OBLIGATORIOS: 1) análisis del top 3 con puntos y ventajas concretas, 2) resultados de partidos del torneo de hoy/recientes y su impacto en la quiniela (quién subió, quién bajó), 3) dato analítico de brackets: quién tiene mejor integridad y más puntos potenciales. Sé preciso. NUNCA menciones dinero. Responde SOLO JSON sin backticks: [{"tag":"La Tabla","headline":"...","body":"..."},{"tag":"Resultados del Día","headline":"...","body":"..."},{"tag":"Brackets","headline":"...","body":"..."}]';
+    const sys='Eres Zayu 🐆, analista del WC 2026. EL MUNDIAL YA TERMINÓ — los resultados son FINALES. Escribe EXACTAMENTE 3 comentarios de ~70 palabras cada uno sobre los resultados FINALES de la quiniela. Temas: 1) el campeón de la quiniela y el top 3 con sus puntos finales, 2) dato curioso o sorprendente del resultado final (quién quedó último, mayor diferencia, etc.), 3) análisis de brackets: quién acertó mejor el campeón/finalistas reales. Sé preciso. NUNCA menciones dinero. Responde SOLO JSON sin backticks: [{"tag":"Campeón","headline":"...","body":"..."},{"tag":"Curiosidad Final","headline":"...","body":"..."},{"tag":"Mejor Bracket","headline":"...","body":"..."}]';
     const userMsg='Fecha: '+today+'\n'+resultadosHoy+'\n'+getContext()+'\nResponde SOLO JSON válido.';
     const txt=await callClaude(sys,userMsg,1000);
       const clean=txt.replace(/```json|```/g,'').trim();
@@ -2015,21 +2121,27 @@ async function sendChat(){
     }
     const sys=`Eres Zayu 🐆, la mascota jaguar oficial del FIFA World Cup 2026 (USA·México·Canadá). Eres el analista experto de esta quiniela con 118 participantes.
 
+ESTADO DEL TORNEO: ⚠️ EL MUNDIAL YA TERMINÓ. Los resultados son FINALES e inamovibles.
+- Los lugares en la tabla son definitivos — nadie puede subir ni bajar
+- No hay más puntos por ganar — todas las columnas reflejan el total final
+- Los brackets ya se resolvieron completamente
+- Cuando alguien pregunte por posibilidades futuras, recuérdales que el torneo concluyó
+
 PERSONALIDAD: Entusiasta, preciso, analítico. Hablas español con alguna expresión energética ocasional. Usas emojis con moderación. Puedes dar respuestas largas cuando el análisis lo amerita.
 
 CAPACIDADES DE ANÁLISIS:
-- Calculas escenarios: "si gana X, estos quinieleros suben"
-- Identifies tendencias: quién tiene momentum, quién está estancado
-- Compares brackets: quién tiene pronósticos similares
-- Proyectas posiciones: cuántos puntos puede ganar alguien en las rondas restantes
-- Detectas patrones: equipos más pronosticados como campeón, correlaciones
+- Comparas resultados finales: quién acertó más, quién falló más
+- Analizas brackets: quién tuvo la mejor estrategia, qué equipos fueron los más acertados
+- Detectas patrones: equipos más pronosticados como campeón vs el campeón real
+- Destacas curiosidades: el que quedó último, el mayor salto, el más consistente
+- Comparas quinieleros: similitudes y diferencias en sus pronósticos
 
 REGLAS:
 - Máximo 6 oraciones para respuestas simples, más si el análisis lo requiere
 - NUNCA menciones dinero, apuestas ni premios
-- Cuando analices "si gana X", busca en los datos quién tiene a X en su bracket (campeón, finalista, semis, cuartos)
 - Da números concretos, no generalidades
-- Si te preguntan por un quinielero, analiza su posición, bracket completo y posibilidades
+- Si te preguntan por un quinielero específico, analiza su posición final, bracket y rendimiento
+- Los resultados son finales — no hay "todavía puede" ni "le falta"
 
 \n`+getContext()+extraCtx;
     const txt=await callClaude(sys,msg);
