@@ -373,7 +373,8 @@ function detectCols(rows) {
         fg8:r.findIndex(c=>c&&(c.trim()==='8vos'||c.trim()==='8vq'||c.trim()==='8vo'||c.trim()==='Octavos')),
         f4t:r.findIndex(c=>c&&(c.trim()==='4tos'||c.trim()==='4to'||c.trim()==='Ctos'||c.trim()==='Cuartos'||c.trim()==='4t°'||c.trim()==='Cto')),
         fsemi:r.findIndex(c=>c&&(c.trim()==='Semi'||c.trim()==='Semis'||c.trim()==='Sem'||c.trim()==='Semifinal')),
-        fcamp:r.findIndex(c=>c&&(c.trim()==='Camp'||c.trim()==='Campeon'||c.trim()==='Campeón'||c.trim()==='Final'||c.trim()==='Fin'||c.trim()==='3/C'||c.trim()==='3er/C'||c.trim()==='3Camp'||c.trim()==='Cmp/3'||c.trim()==='Cmp3')),
+        ffin:r.findIndex(c=>c&&(c.trim()==='Fin'||c.trim()==='Final'||c.trim()==='Finalistas')),
+        fcamp:r.findIndex(c=>c&&(c.trim()==='Camp'||c.trim()==='Campeon'||c.trim()==='Campeón'||c.trim()==='3/C'||c.trim()==='3er/C'||c.trim()==='3Camp'||c.trim()==='Cmp/3'||c.trim()==='Cmp3'||c.trim()==='3/Camp')),
         tot:ti, dif:r.findIndex(c=>c&&c.trim()==='Dif')>=0?r.findIndex(c=>c&&c.trim()==='Dif'):ti+1
       };
       console.log('📊 Headers cols 0-16:',r.slice(0,17).map((v,i)=>`[${i}]${v||''}`).join(' '));
@@ -381,7 +382,7 @@ function detectCols(rows) {
       return C;
     }
   }
-  return {hdr:1,rank:3,nombre:4,r1:5,r2:6,r3:7,marc:8,gpos:9,fg8:-1,f4t:-1,fsemi:-1,fcamp:-1,tot:14,dif:15};
+  return {hdr:1,rank:3,nombre:4,r1:5,r2:6,r3:7,marc:8,gpos:9,fg8:-1,f4t:-1,fsemi:-1,ffin:-1,fcamp:-1,tot:14,dif:15};
 }
 
 function setMsg(m) {
@@ -419,6 +420,7 @@ async function loadAll() {
       fg8:C.fg8>=0?(parseInt(r[C.fg8])||0):0,
       f4t:C.f4t>=0?(parseInt(r[C.f4t])||0):0,
       fsemi:C.fsemi>=0?(parseInt(r[C.fsemi])||0):0,
+      ffin:C.ffin>=0?(parseInt(r[C.ffin])||0):0,
       fcamp:C.fcamp>=0?(parseInt(r[C.fcamp])||0):0,
       tot, dif:parseInt(r[C.dif])||0});
   }
@@ -581,7 +583,8 @@ function renderTabla(pls) {
       <th onclick="sortByCol('fg8')" style="color:var(--azul)">8vos</th>
       <th onclick="sortByCol('f4t')" style="color:var(--verde)">4tos</th>
       <th onclick="sortByCol('fsemi')" style="color:var(--verde)">Semi</th>
-      <th onclick="sortByCol('fcamp')" style="color:var(--dorado)">3/Camp</th>
+      <th onclick="sortByCol('ffin')" style="color:var(--naranja)">Fin</th>
+      <th onclick="sortByCol('fcamp')" style="color:var(--dorado)">Cmp/3</th>
     </tr></thead>
     <tbody>
     ${pls.map((p)=>{
@@ -600,6 +603,7 @@ function renderTabla(pls) {
         <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--azul)">${p.fg8||'-'}</td>
         <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--verde)">${p.f4t||'-'}</td>
         <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--verde)">${p.fsemi||'-'}</td>
+        <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--naranja)">${p.ffin||'-'}</td>
         <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--dorado)">${p.fcamp||'-'}</td>
       </tr>`;
     }).join('')}
@@ -1628,8 +1632,8 @@ function getContext(){
 
   return `QUINIELA FIFA WC 2026 — ${hoy}
 Participantes: ${players.length} | Promedio: ${avg}pts | Más exactos: ${topEx?.nombre} (${topEx?.exactosR})
-TABLA COMPLETA (nombre|pos|pts|dif|8vos|4tos|semi|3camp):
-${players.map(p=>`${p.nombre}|#${p.rank}|${p.tot}pts|${p.dif}|${p.fg8||0}|${p.f4t||0}|${p.fsemi||0}|${p.fcamp||0}`).join('\n')}
+TABLA COMPLETA (nombre|pos|pts|dif|8vos|4tos|semi|fin|3camp):
+${players.map(p=>`${p.nombre}|#${p.rank}|${p.tot}pts|${p.dif}|${p.fg8||0}|${p.f4t||0}|${p.fsemi||0}|${p.ffin||0}|${p.fcamp||0}`).join('\n')}
 
 ESTADO REAL DEL TORNEO WC 2026 (ACTUALIZADO AL DÍA):
 ✅ Clasificados a 8vos (ganaron 16avos): ${en8vos}
@@ -2119,6 +2123,7 @@ function showBracket(nombre){
       <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--azul)">${p.fg8||0} pts</div><div style="font-size:12px;font-weight:600;color:var(--azul)">8vos</div></div>
       <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--verde)">${p.f4t||0} pts</div><div style="font-size:12px;font-weight:600;color:var(--verde)">4tos</div></div>
       <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--verde)">${p.fsemi||0} pts</div><div style="font-size:12px;font-weight:600;color:var(--verde)">Semi</div></div>
+      <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--naranja)">${p.ffin||0} pts</div><div style="font-size:12px;font-weight:600;color:var(--naranja)">Final</div></div>
       <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--dorado)">${p.fcamp||0} pts</div><div style="font-size:12px;font-weight:600;color:var(--dorado)">3er/Camp</div></div>
       <div class="pstat"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:${p.dif===0?'var(--dorado)':'var(--text)'}">${p.dif===0?'LÍDER':p.dif+' pts'}</div><div style="font-size:12px;font-weight:600;color:var(--text2)">del líder · #${p.rank}</div></div>
     </div>`:'';
