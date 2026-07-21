@@ -241,104 +241,7 @@ footer{text-align:center;padding:20px;color:var(--text3);font-size:11px;border-t
 <div id="eliminados" class="sec">
   <div class="sec-title">🏆 Posiciones del Mundial</div>
   <p style="color:var(--text2);font-size:13px;margin-bottom:16px">Posiciones finales de los 48 equipos · FIFA World Cup 2026</p>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-    <!-- Podio -->
-    <div style="grid-column:1/-1;display:flex;gap:10px;justify-content:center;margin-bottom:8px">
-      <div style="text-align:center;padding:16px 24px;background:linear-gradient(135deg,rgba(255,215,0,.15),rgba(255,215,0,.05));border:2px solid var(--dorado);border-radius:12px">
-        <div style="font-size:32px">🥇</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--dorado)">España</div>
-        <div style="font-size:11px;color:var(--text2)">1-0 ET vs Argentina</div>
-      </div>
-      <div style="text-align:center;padding:16px 24px;background:rgba(192,192,192,.1);border:2px solid #8a8a8a;border-radius:12px">
-        <div style="font-size:32px">🥈</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#8a8a8a">Argentina</div>
-        <div style="font-size:11px;color:var(--text2)">Finalista</div>
-      </div>
-      <div style="text-align:center;padding:16px 24px;background:rgba(205,127,50,.1);border:2px solid #CD7F32;border-radius:12px">
-        <div style="font-size:32px">🥉</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#CD7F32">Inglaterra</div>
-        <div style="font-size:11px;color:var(--text2)">6-4 vs Francia</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tabla completa -->
-  <div style="overflow-x:auto">
-  <table style="width:100%;border-collapse:collapse;font-size:12px">
-    <thead>
-      <tr style="background:var(--bg3);border-bottom:2px solid var(--border)">
-        <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text2)">#</th>
-        <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text2)">Equipo</th>
-        <th style="padding:8px 10px;text-align:center;font-weight:700;color:var(--text2)">Fase</th>
-        <th style="padding:8px 10px;text-align:center;font-weight:700;color:var(--text2)">Eliminado por</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${[
-        [1,'España','🥇 Campeón','—'],
-        [2,'Argentina','🥈 Final','España (1-0 ET)'],
-        [3,'Inglaterra','🥉 3er Lugar','—'],
-        [4,'Francia','4to Lugar','Inglaterra (4-6)'],
-        [5,'Marruecos','Cuartos','Francia (0-2)'],
-        [5,'Noruega','Cuartos','Argentina (1-2 ET)'],
-        [5,'Bélgica','Cuartos','España (1-2)'],
-        [5,'Suiza','Cuartos','Argentina (1-3)'],
-        [9,'Brasil','16avos','Noruega'],
-        [9,'Portugal','16avos','España'],
-        [9,'México','16avos','Inglaterra (2-3)'],
-        [9,'Canadá','16avos','Marruecos'],
-        [9,'USA','16avos','Bélgica (1-4)'],
-        [9,'Paraguay','16avos','Francia'],
-        [9,'Colombia','16avos','Suiza (pen)'],
-        [9,'Egipto','16avos','Argentina (2-3)'],
-        [17,'Alemania','32avos','Paraguay'],
-        [17,'Holanda','32avos','Marruecos (pen)'],
-        [17,'Suecia','32avos','Francia'],
-        [17,'Escocia','32avos','México'],
-        [17,'Uruguay','32avos','Bélgica'],
-        [17,'Senegal','32avos','Argentina'],
-        [17,'Japón','32avos','Brasil'],
-        [17,'Ecuador','32avos','México'],
-        [17,'Australia','32avos','Suiza'],
-        [17,'Austria','32avos','España'],
-        [17,'Croacia','32avos','México'],
-        [17,'Ghana','32avos','Noruega'],
-        [17,'Argelia','32avos','Suiza'],
-        [17,'RD Congo','32avos','Inglaterra'],
-        [17,'Bosnia','32avos','USA'],
-        [17,'Costa de Marfil','32avos','Noruega'],
-        [33,'Irak','Grupos','—'],
-        [33,'Tunisia','Grupos','—'],
-        [33,'Uzbekistán','Grupos','—'],
-        [33,'Haití','Grupos','—'],
-        [33,'Jordania','Grupos','—'],
-        [33,'Panamá','Grupos','—'],
-        [33,'Catar','Grupos','—'],
-        [33,'Curazao','Grupos','—'],
-        [33,'N.Zelanda','Grupos','—'],
-        [33,'Chequia','Grupos','—'],
-        [33,'Arabia','Grupos','—'],
-        [33,'Korea','Grupos','—'],
-        [33,'Irán','Grupos','—'],
-        [33,'Sudáfrica','Grupos','—'],
-        [33,'Turquía','Grupos','—'],
-        [33,'Cabo Verde','Grupos','—'],
-      ].map(([pos,equipo,fase,elim])=>{
-        const isCamp=pos===1, isSub=pos===2, is3ro=pos===3, is4to=pos===4;
-        const isKO8=pos===5, isKO16=pos===9, isKO32=pos===17, isGrupos=pos===33;
-        const bg=isCamp?'rgba(255,215,0,.08)':isSub?'rgba(192,192,192,.06)':is3ro?'rgba(205,127,50,.06)':'';
-        const color=isCamp?'var(--dorado)':isSub?'#8a8a8a':is3ro?'#CD7F32':is4to?'var(--naranja)':isKO8?'var(--verde)':isKO16?'var(--azul)':isKO32?'var(--text2)':'var(--text3)';
-        return `<tr style="border-bottom:1px solid var(--border);background:${bg}">
-          <td style="padding:7px 10px;font-weight:700;color:${color}">${pos}</td>
-          <td style="padding:7px 10px;font-weight:${pos<=4?'700':'400'};color:${color}">${equipo}</td>
-          <td style="padding:7px 10px;text-align:center;font-size:11px;color:${color}">${fase}</td>
-          <td style="padding:7px 10px;text-align:center;font-size:11px;color:var(--text3)">${elim}</td>
-        </tr>`;
-      }).join('')}
-    </tbody>
-  </table>
-  </div>
+  <div id="posiciones-cont"></div>
 </div>
 
 <div id="comentarios" class="sec">
@@ -1575,47 +1478,35 @@ function buildFacts(){
   const rangoTop10=top10[0].tot-top10[9].tot;
 
   const facts=[
-    {icon:'📏',text:`La ventaja del líder sobre el 2do es de solo <strong>${gap} pts</strong>. Con ${players.length} quinieleiros y eliminatorias por venir, esto está lejos de definirse.`},
-    {icon:'🎯',text:`<strong>${topEx.nombre.split(' ')[0]}</strong> es el francotirador de la quiniela con <strong>${topEx.exactosR} marcadores exactos</strong>. En el otro extremo, <strong>${minEx.nombre.split(' ')[0]}</strong> con ${minEx.exactosR} exactos.`},
-    {icon:'🏅',text:zeroGpos.length>0?`<strong>${zeroGpos.length} quinieleiros</strong> no tienen puntos de grupos aún: ${zeroGpos.slice(0,3).map(p=>p.nombre.split(' ')[0]).join(', ')}. ¡El grupo les cobró factura!`:`El rey de los clasificados es <strong>${topGpos.nombre.split(' ')[0]}</strong> con <strong>${topGpos.gpos} pts</strong> acertando lugares de grupo.`},
-    {icon:'👨‍👩‍👧‍👦',text:topFam?`La familia <strong>"${topFam[0]}"</strong> domina con <strong>${topFam[1]} quinielas</strong> activas. ¡A ver quién de la familia termina arriba! ${reyesCount>3?'La dinastía Reyes/Retana tiene '+reyesCount+' quinielas en total.':''}`:'Varias familias participando — la quiniela es un deporte familiar.'},
-    {icon:'📊',text:`El top 10 está separado por solo <strong>${rangoTop10} pts</strong>. Hay <strong>${within3}</strong> quinieleiros a 3 pts o menos del promedio (${avg}). ¡El grupo está muy parejo!`},
-    {icon:'🔴',text:`<strong>${last.nombre.split(' ')[0]}</strong> aguanta en el fondo con <strong>${last.tot} pts</strong>, a ${leader.tot-last.tot} del líder. Pero quedan muchos partidos — ¡nada está escrito!`},
+    {icon:'🏆',text:`<strong>${leader.nombre.split(' ').slice(0,2).join(' ')}</strong> se coronó campeón de la quiniela con <strong>${leader.tot} pts</strong>, superando por ${gap} pts a <strong>${second.nombre.split(' ').slice(0,2).join(' ')}</strong> (${second.tot} pts). ¡Felicidades al rey de la quiniela!`},
+    {icon:'🎯',text:`<strong>${topEx.nombre.split(' ')[0]}</strong> fue el francotirador con <strong>${topEx.exactosR} marcadores exactos</strong> — el mayor de la quiniela. En el otro extremo, <strong>${minEx.nombre.split(' ')[0]}</strong> con ${minEx.exactosR} exactos en todo el torneo.`},
+    {icon:'🇪🇸',text:`España ganó el Mundial 2026, pero ¿cuántos lo predijeron? Los quinieleros que acertaron a España como campeón fueron los grandes ganadores del bracket, sumando hasta 12 pts extra de golpe.`},
+    {icon:'📊',text:`El promedio final de la quiniela fue <strong>${avg} pts</strong>. <strong>${belowAvg}</strong> de ${players.length} quinieleros quedaron bajo el promedio y <strong>${players.length-belowAvg}</strong> por encima. La diferencia entre primero y último: <strong>${leader.tot-last.tot} pts</strong>.`},
+    {icon:'👨‍👩‍👧‍👦',text:topFam?`La familia <strong>"${topFam[0]}"</strong> tuvo <strong>${topFam[1]} quinielas</strong> activas. ${reyesCount>3?'La dinastía Reyes/Retana puso '+reyesCount+' quinielas en total. ':''} ¡La quiniela es un deporte familiar!`:'Varias familias participando — la quiniela es un deporte familiar.'},
+    {icon:'🔴',text:`<strong>${last.nombre.split(' ').slice(0,2).join(' ')}</strong> cerró en el último lugar con <strong>${last.tot} pts</strong>, a ${leader.tot-last.tot} del campeón. El camino fue difícil, ¡pero la experiencia no tiene precio!`},
     {icon:'✅',text:(()=>{
       const topResVal=topRes.resultados||0;
-      const minResVal=minRes.resultados||0;
       const conTopRes=byRes.filter(p=>(p.resultados||0)===topResVal);
-      const conMinRes=[...byRes].reverse().filter(p=>(p.resultados||0)===minResVal);
-      const nameTop=conTopRes.length>1?conTopRes.map(p=>p.nombre.split(' ').slice(0,2).join(' ')).join(', '):topRes.nombre.split(' ').slice(0,2).join(' ');
-      const nameMin=conMinRes.length>1?conMinRes.length+' quinieleiros':minRes.nombre.split(' ').slice(0,2).join(' ');
-      return `El líder de resultados correctos: <strong>${nameTop}</strong> con <strong>${topResVal}</strong>. ${conTopRes.length>1?'(todos empatados)':''} El que menos tiene: <strong>${nameMin}</strong> con ${minResVal}.`;
+      const nameTop=conTopRes.length>1?conTopRes.length+' quinieleros empatados':topRes.nombre.split(' ').slice(0,2).join(' ');
+      return `El líder en resultados correctos fue <strong>${nameTop}</strong> con <strong>${topResVal} resultados</strong> acertados durante todo el torneo.`;
     })()},
-    {icon:'🌟',text:(()=>{const topGposVal=topGpos.gpos;const conTopGpos=players.filter(p=>p.gpos===topGposVal);return `<strong>${conTopGpos.length>1?conTopGpos.length+' quinieleiros tienen':topGpos.nombre.split(' ')[0]+' tiene'}</strong> <strong>${topGposVal} pts de clasificación</strong> — el máximo en lugares de grupo (1ro=4, 2do=3, 3ro=2 pts).`;})()},
+    {icon:'🌟',text:(()=>{const topGposVal=topGpos.gpos;const conTopGpos=players.filter(p=>p.gpos===topGposVal);return `<strong>${conTopGpos.length>1?conTopGpos.length+' quinieleros terminaron con':topGpos.nombre.split(' ')[0]+' terminó con'}</strong> <strong>${topGposVal} pts de clasificación</strong> — el máximo en predicciones de grupos. ¡Leyeron perfectamente la fase de grupos!`;})()},
     {icon:'📈',text:(()=>{
       const r1val=topR1.r1,r2val=topR2.r2,r3val=topR3.r3;
       const empR1=players.filter(p=>p.r1===r1val).length;
       const empR2=players.filter(p=>p.r2===r2val).length;
-      const empR3=players.filter(p=>p.r3===r3val).length;
-      const n1=empR1>1?empR1+' quinieleiros empatados':topR1.nombre.split(' ').slice(0,2).join(' ');
-      const n2=empR2>1?empR2+' quinieleiros empatados':topR2.nombre.split(' ').slice(0,2).join(' ');
-      return `R1: <strong>${n1}</strong> (${r1val} pts). R2: <strong>${n2}</strong> (${r2val} pts).${r3val>0?' R3: <strong>'+(empR3>1?empR3+' empatados':topR3.nombre.split(' ').slice(0,2).join(' '))+'</strong> ('+r3val+' pts).':''}`;
+      const n1=empR1>1?empR1+' empatados':topR1.nombre.split(' ').slice(0,2).join(' ');
+      const n2=empR2>1?empR2+' empatados':topR2.nombre.split(' ').slice(0,2).join(' ');
+      return `Mejor en R1: <strong>${n1}</strong> (${r1val} pts). Mejor en R2: <strong>${n2}</strong> (${r2val} pts). La constancia ronda a ronda marcó la diferencia.`;
     })()},
-    {icon:'🤝',text:(()=>{
-      const topGposLdr=players.filter(p=>p.gpos===topGpos.gpos);
-      return empatados>1
-        ?`Son <strong>${empatados} quinieleiros</strong> empatados en el primer lugar con ${leader.tot} pts: ${players.filter(p=>p.rank===1).map(p=>p.nombre.split(' ').slice(0,2).join(' ')).join(', ')}.`
-        :`El mejor en clasificados de grupo: <strong>${topGposLdr.length>1?topGposLdr.length+' quinieleiros con '+topGpos.gpos+' pts':topGpos.nombre.split(' ').slice(0,2).join(' ')+' con '+topGpos.gpos+' pts'}</strong>. El liderazgo en grupos puede cambiar todo en eliminatorias.`;
-    })()},
-    {icon:'💡',text:`<strong>${belowAvg}</strong> de ${players.length} quinieleiros están debajo del promedio (${avg} pts), y <strong>${players.length-belowAvg}</strong> están arriba. ¿En qué lado estás tú?`},
     {icon:'🎲',text:(()=>{
       const conExactos=enrichedS.filter(p=>p.exactosR>0);
       const promExactos=conExactos.length>0?Math.round(conExactos.reduce((s,p)=>s+p.exactosR,0)/conExactos.length*10)/10:0;
-      return `El promedio de marcadores exactos entre quienes acertaron al menos uno: <strong>${promExactos} exactos</strong>. <strong>${conExactos.length}</strong> de ${players.length} quinieleiros acertaron algún marcador exacto.`;
+      return `<strong>${conExactos.length}</strong> de ${players.length} quinieleros acertaron al menos un marcador exacto. El promedio entre ellos fue <strong>${promExactos} exactos</strong>. Adivinar el marcador exacto es el arte más difícil de la quiniela.`;
     })()},
-    {icon:'📉',text:`El rango de puntos va de <strong>${last.tot}</strong> (último) a <strong>${leader.tot}</strong> (líder) — <strong>${leader.tot-last.tot} pts de diferencia</strong>. El promedio es ${avg} pts. En eliminatorias, acertar al campeón puede valer 12+ pts de golpe.`},
-    {icon:'🔢',text:`Si la quiniela terminara hoy, el líder tendría ${leader.tot-avg} pts sobre el promedio. Pero quedan partidos de 8vos, 4tos, semis y final — cada uno vale hasta 4 pts.`},
-    {icon:'⚡',text:zeroExactos.length>0?`<strong>${zeroExactos.length} quinieleiros</strong> aún no tienen ningún marcador exacto. Adivinar el marcador exacto es lo más difícil de la quiniela — ¡vale 4 pts pero hay que ser muy afinado!`:`¡Todos han acertado al menos un marcador exacto! El líder en exactos: <strong>${topEx.nombre.split(' ')[0]}</strong> con ${topEx.exactosR}.`},
-    {icon:'🏆',text:`En eliminatorias se juegan 16+8+4+2+1 = 31 partidos más. Cada exacto vale 4 pts. Quien lea mejor los partidos ahí puede cambiar completamente la tabla.`},
+    {icon:'⚽',text:`Argentina llegó a la final pero cayó ante España 1-0 en tiempo extra con gol de Ferran Torres al 106'. Inglaterra sorprendió con su 3er lugar, goleando a Francia 6-4 en el partido más emocionante del torneo.`},
+    {icon:'📉',text:`El rango final va de <strong>${last.tot}</strong> a <strong>${leader.tot}</strong> pts — <strong>${leader.tot-last.tot} pts de diferencia</strong> entre primero y último. Promedio final: ${avg} pts. Una quiniela muy disputada de principio a fin.`},
+    {icon:'🎊',text:`¡Hasta el Mundial 2030! Esta fue la primera edición con 48 equipos y 104 partidos, un torneo histórico. Gracias a todos los ${players.length} quinieleros que participaron — ¡esto es lo más importante, la convivencia!`},
   ];
 
   document.getElementById('facts-cont').innerHTML=facts.map(f=>`<div class="fact-card"><div class="fact-icon">${f.icon}</div><div><div class="fact-text">${f.text}</div></div></div>`).join('');
@@ -1732,6 +1623,9 @@ function getContext(){
 Participantes: ${players.length} | Promedio: ${avg}pts | Más exactos: ${topEx?.nombre} (${topEx?.exactosR})
 TABLA COMPLETA (nombre|pos|pts|dif|8vos|4tos|semi|fin|3camp):
 ${players.map(p=>`${p.nombre}|#${p.rank}|${p.tot}pts|${p.dif}|${p.fg8||0}|${p.f4t||0}|${p.fsemi||0}|${p.ffin||0}|${p.fcamp||0}`).join('\n')}
+
+TOP 8 CON PREMIO (resultados definitivos):
+${[...players].sort((a,b)=>b.tot-a.tot).slice(0,8).map((p,i)=>`${i+1}. ${p.nombre} — ${p.tot} pts`).join('\n')}
 
 ESTADO REAL DEL TORNEO WC 2026 (ACTUALIZADO AL DÍA):
 ✅ Clasificados a 8vos (ganaron 16avos): ${en8vos}
@@ -2054,7 +1948,7 @@ async function genComment(){
     const resultadosHoy = gRealOct16.size>0
       ? `Clasificados a 8vos: ${[...gRealOct16].join(', ')}. Eliminados en 16avos: ${[...eliminadosOct16].join(', ')||'ninguno aún'}.`
       : 'Resultados de 16avos pendientes.';
-    const sys='Eres Zayu 🐆, analista del WC 2026. EL MUNDIAL YA TERMINÓ — los resultados son FINALES. Escribe EXACTAMENTE 3 comentarios de ~70 palabras cada uno sobre los resultados FINALES de la quiniela. Temas: 1) el campeón de la quiniela y el top 3 con sus puntos finales, 2) dato curioso o sorprendente del resultado final (quién quedó último, mayor diferencia, etc.), 3) análisis de brackets: quién acertó mejor el campeón/finalistas reales. Sé preciso. NUNCA menciones dinero. Responde SOLO JSON sin backticks: [{"tag":"Campeón","headline":"...","body":"..."},{"tag":"Curiosidad Final","headline":"...","body":"..."},{"tag":"Mejor Bracket","headline":"...","body":"..."}]';
+    const sys='Eres Zayu 🐆, mascota del WC 2026. El mundial terminó el 19 jul con España campeón. Esta es la CRÓNICA FINAL de la quiniela. Escribe EXACTAMENTE 3 comentarios de ~80 palabras que sirvan como cierre histórico. Temas OBLIGATORIOS: 1) Felicita al CAMPEÓN de la quiniela por nombre y sus puntos, menciona que los primeros 8 lugares ganaron premio y nómbralos a todos, 2) Las sorpresas más grandes: quién acertó a España campeón, quién falló más, el más exacto, el que remontó más posiciones, 3) Cierre épico: reflexión sobre el mundial (España campeón, Argentina subcampeón, Inglaterra 3ro, gol de Ferran Torres 106\') y la quiniela como experiencia. NUNCA menciones dinero ni montos. Responde SOLO JSON sin backticks: [{"tag":"¡Tenemos Campeón!","headline":"...","body":"..."},{"tag":"Las Sorpresas","headline":"...","body":"..."},{"tag":"Hasta el 2030","headline":"...","body":"..."}]';
     const userMsg='Fecha: '+today+'\n'+resultadosHoy+'\n'+getContext()+'\nResponde SOLO JSON válido.';
     const txt=await callClaude(sys,userMsg,1000);
       const clean=txt.replace(/```json|```/g,'').trim();
@@ -2119,31 +2013,18 @@ async function sendChat(){
         break;
       }
     }
-    const sys=`Eres Zayu 🐆, la mascota jaguar oficial del FIFA World Cup 2026 (USA·México·Canadá). Eres el analista experto de esta quiniela con 118 participantes.
+    const sys=`Eres Zayu 🐆, la mascota jaguar oficial del FIFA World Cup 2026. Analista experto de esta quiniela con 118 participantes. EL MUNDIAL Y LA QUINIELA YA TERMINARON — resultados DEFINITIVOS.
 
-ESTADO DEL TORNEO: ⚠️ EL MUNDIAL YA TERMINÓ. Los resultados son FINALES e inamovibles.
-- Los lugares en la tabla son definitivos — nadie puede subir ni bajar
-- No hay más puntos por ganar — todas las columnas reflejan el total final
-- Los brackets ya se resolvieron completamente
-- Cuando alguien pregunte por posibilidades futuras, recuérdales que el torneo concluyó
+ESTADO FINAL: España campeón (1-0 ET vs Argentina). Los primeros 8 lugares de la quiniela obtuvieron premio. Felicítalos cuando los menciones.
+- No hay más puntos posibles, no hay proyecciones, todo es análisis en pasado.
 
-PERSONALIDAD: Entusiasta, preciso, analítico. Hablas español con alguna expresión energética ocasional. Usas emojis con moderación. Puedes dar respuestas largas cuando el análisis lo amerita.
+PERSONALIDAD: Entusiasta, preciso, analítico. Español con expresiones energéticas ocasionales. Emojis con moderación.
 
-CAPACIDADES DE ANÁLISIS:
-- Comparas resultados finales: quién acertó más, quién falló más
-- Analizas brackets: quién tuvo la mejor estrategia, qué equipos fueron los más acertados
-- Detectas patrones: equipos más pronosticados como campeón vs el campeón real
-- Destacas curiosidades: el que quedó último, el mayor salto, el más consistente
-- Comparas quinieleros: similitudes y diferencias en sus pronósticos
+CAPACIDADES: Analizas resultados finales, comparas brackets vs realidad, detectas curiosidades, felicitas top 8.
 
-REGLAS:
-- Máximo 6 oraciones para respuestas simples, más si el análisis lo requiere
-- NUNCA menciones dinero, apuestas ni premios
-- Da números concretos, no generalidades
-- Si te preguntan por un quinielero específico, analiza su posición final, bracket y rendimiento
-- Los resultados son finales — no hay "todavía puede" ni "le falta"
+REGLAS: NUNCA menciones dinero ni montos de premio. Da números concretos. Respuestas de hasta 6 oraciones salvo análisis complejos.
 
-\n`+getContext()+extraCtx;
+\n\`+getContext()+extraCtx;
     const txt=await callClaude(sys,msg);
     removeTyping(tid);appendMsg('bot',txt);
   }catch(e){
@@ -2184,7 +2065,7 @@ function show(id){
   if(id==='nominados'&&players.length)buildNominados();
   if(id==='profetas'&&quinielaRows.length)buildProfetas();
   if(id==='grupos'&&quinielaRows.length)buildGrupos();
-  if(id==='eliminados'&&quinielaRows.length)buildEliminados();
+  if(id==='eliminados') buildPosiciones();
   if(id==='comentarios')genComment(); // regenerar si los elementos son visibles
   if(id==='curiosos'&&players.length)buildFacts();
 }
@@ -2558,6 +2439,106 @@ function buildTennisDraw(nombre){
     </table>
   </div>`;
   } catch(e){ return '<p style="color:red;padding:20px">Error en bracket: '+e.message+'</p>'; }
+}
+
+// ══════════════════════════════════════════════
+// POSICIONES FINALES DEL MUNDIAL
+// ══════════════════════════════════════════════
+function buildPosiciones(){
+  const equipos=[
+    [1,'España','🥇 Campeón','—','var(--dorado)','rgba(255,215,0,.08)'],
+    [2,'Argentina','🥈 Finalista','España (1-0 ET)','#8a8a8a','rgba(192,192,192,.06)'],
+    [3,'Inglaterra','🥉 3er Lugar','—','#CD7F32','rgba(205,127,50,.06)'],
+    [4,'Francia','4to Lugar','Inglaterra (4-6)','var(--naranja)',''],
+    [5,'Marruecos','Cuartos','Francia (0-2)','var(--verde)',''],
+    [5,'Noruega','Cuartos','Argentina (1-2 ET)','var(--verde)',''],
+    [5,'Bélgica','Cuartos','España (1-2)','var(--verde)',''],
+    [5,'Suiza','Cuartos','Argentina (1-3)','var(--verde)',''],
+    [9,'Brasil','16avos','Noruega','var(--azul)',''],
+    [9,'Portugal','16avos','España','var(--azul)',''],
+    [9,'México','16avos','Inglaterra (2-3)','var(--azul)',''],
+    [9,'Canadá','16avos','Marruecos','var(--azul)',''],
+    [9,'USA','16avos','Bélgica (1-4)','var(--azul)',''],
+    [9,'Paraguay','16avos','Francia','var(--azul)',''],
+    [9,'Colombia','16avos','Suiza (pen)','var(--azul)',''],
+    [9,'Egipto','16avos','Argentina (2-3)','var(--azul)',''],
+    [17,'Alemania','32avos','Paraguay','var(--text2)',''],
+    [17,'Holanda','32avos','Marruecos (pen)','var(--text2)',''],
+    [17,'Suecia','32avos','Francia','var(--text2)',''],
+    [17,'Escocia','32avos','México','var(--text2)',''],
+    [17,'Uruguay','32avos','Bélgica','var(--text2)',''],
+    [17,'Senegal','32avos','Argentina','var(--text2)',''],
+    [17,'Japón','32avos','Brasil','var(--text2)',''],
+    [17,'Ecuador','32avos','México','var(--text2)',''],
+    [17,'Australia','32avos','Suiza','var(--text2)',''],
+    [17,'Austria','32avos','España','var(--text2)',''],
+    [17,'Croacia','32avos','México','var(--text2)',''],
+    [17,'Ghana','32avos','Noruega','var(--text2)',''],
+    [17,'Argelia','32avos','Suiza','var(--text2)',''],
+    [17,'RD Congo','32avos','Inglaterra','var(--text2)',''],
+    [17,'Bosnia','32avos','USA','var(--text2)',''],
+    [17,'Costa de Marfil','32avos','Noruega','var(--text2)',''],
+    [33,'Irak','Grupos','—','var(--text3)',''],
+    [33,'Tunisia','Grupos','—','var(--text3)',''],
+    [33,'Uzbekistán','Grupos','—','var(--text3)',''],
+    [33,'Haití','Grupos','—','var(--text3)',''],
+    [33,'Jordania','Grupos','—','var(--text3)',''],
+    [33,'Panamá','Grupos','—','var(--text3)',''],
+    [33,'Catar','Grupos','—','var(--text3)',''],
+    [33,'Curazao','Grupos','—','var(--text3)',''],
+    [33,'N.Zelanda','Grupos','—','var(--text3)',''],
+    [33,'Chequia','Grupos','—','var(--text3)',''],
+    [33,'Arabia','Grupos','—','var(--text3)',''],
+    [33,'Korea','Grupos','—','var(--text3)',''],
+    [33,'Irán','Grupos','—','var(--text3)',''],
+    [33,'Sudáfrica','Grupos','—','var(--text3)',''],
+    [33,'Turquía','Grupos','—','var(--text3)',''],
+    [33,'Cabo Verde','Grupos','—','var(--text3)',''],
+  ];
+
+  const podio=`<div style="display:flex;gap:10px;justify-content:center;margin-bottom:20px;flex-wrap:wrap">
+    <div style="text-align:center;padding:16px 24px;background:linear-gradient(135deg,rgba(255,215,0,.15),rgba(255,215,0,.05));border:2px solid var(--dorado);border-radius:12px">
+      <div style="font-size:32px">🥇</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--dorado)">España</div>
+      <div style="font-size:11px;color:var(--text2)">1-0 ET vs Argentina</div>
+    </div>
+    <div style="text-align:center;padding:16px 24px;background:rgba(192,192,192,.1);border:2px solid #8a8a8a;border-radius:12px">
+      <div style="font-size:32px">🥈</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#8a8a8a">Argentina</div>
+      <div style="font-size:11px;color:var(--text2)">Finalista</div>
+    </div>
+    <div style="text-align:center;padding:16px 24px;background:rgba(205,127,50,.1);border:2px solid #CD7F32;border-radius:12px">
+      <div style="font-size:32px">🥉</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#CD7F32">Inglaterra</div>
+      <div style="font-size:11px;color:var(--text2)">6-4 vs Francia</div>
+    </div>
+    <div style="text-align:center;padding:16px 24px;background:rgba(217,72,15,.08);border:2px solid var(--naranja);border-radius:12px">
+      <div style="font-size:32px">4️⃣</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--naranja)">Francia</div>
+      <div style="font-size:11px;color:var(--text2)">4to lugar</div>
+    </div>
+  </div>`;
+
+  const tabla=`<div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg3);border-bottom:2px solid var(--border)">
+        <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text2)">#</th>
+        <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--text2)">Equipo</th>
+        <th style="padding:8px 10px;text-align:center;font-weight:700;color:var(--text2)">Fase</th>
+        <th style="padding:8px 10px;text-align:center;font-weight:700;color:var(--text2)">Eliminado por</th>
+      </tr></thead>
+      <tbody>${equipos.map(([pos,eq,fase,elim,color,bg])=>`
+        <tr style="border-bottom:1px solid var(--border);background:${bg}">
+          <td style="padding:7px 10px;font-weight:700;color:${color}">${pos}</td>
+          <td style="padding:7px 10px;font-weight:${pos<=4?'700':'400'};color:${color}">${eq}</td>
+          <td style="padding:7px 10px;text-align:center;font-size:11px;color:${color}">${fase}</td>
+          <td style="padding:7px 10px;text-align:center;font-size:11px;color:var(--text3)">${elim}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+
+  document.getElementById('posiciones-cont').innerHTML = podio + tabla;
 }
 
 // ══════════════════════════════════════════════
