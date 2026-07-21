@@ -363,18 +363,23 @@ function detectCols(rows) {
     const r=rows[i];
     const ni=r.findIndex(c=>c&&c.trim()==='Nombre');
     const ti=r.findIndex(c=>c&&(c.trim()==='Tot'||c.trim()==='Total'));
-    if(ni>=0&&ti>=0) return {
-      hdr:i,
-      rank: r.findIndex(c=>c&&c.trim()==='Lg')>=0 ? r.findIndex(c=>c&&c.trim()==='Lg') : ni-1,
-      nombre:ni, r1:r.findIndex(c=>c&&c.trim()==='R1'), r2:r.findIndex(c=>c&&c.trim()==='R2'),
-      r3:r.findIndex(c=>c&&c.trim()==='R3'), marc:r.findIndex(c=>c&&c.trim()==='Marc'),
-      gpos:r.findIndex(c=>c&&(c.trim()==='Gpos'||c.trim()==='Grupos')),
-      fg8:r.findIndex(c=>c&&c.trim()==='8vos'),
-      f4t:r.findIndex(c=>c&&(c.trim()==='4tos'||c.trim()==='Ctos'||c.trim()==='Cuartos')),
-      fsemi:r.findIndex(c=>c&&(c.trim()==='Semi'||c.trim()==='Semis')),
-      fcamp:r.findIndex(c=>c&&(c.trim()==='Camp'||c.trim()==='Campeon'||c.trim()==='Campeón'||c.trim()==='Final')),
-      tot:ti, dif:r.findIndex(c=>c&&c.trim()==='Dif')>=0?r.findIndex(c=>c&&c.trim()==='Dif'):ti+1
-    };
+    if(ni>=0&&ti>=0){
+      const C={
+        hdr:i,
+        rank: r.findIndex(c=>c&&c.trim()==='Lg')>=0 ? r.findIndex(c=>c&&c.trim()==='Lg') : ni-1,
+        nombre:ni, r1:r.findIndex(c=>c&&c.trim()==='R1'), r2:r.findIndex(c=>c&&c.trim()==='R2'),
+        r3:r.findIndex(c=>c&&c.trim()==='R3'), marc:r.findIndex(c=>c&&c.trim()==='Marc'),
+        gpos:r.findIndex(c=>c&&(c.trim()==='Gpos'||c.trim()==='Grupos')),
+        fg8:r.findIndex(c=>c&&(c.trim()==='8vos'||c.trim()==='8vq'||c.trim()==='8vo'||c.trim()==='Octavos')),
+        f4t:r.findIndex(c=>c&&(c.trim()==='4tos'||c.trim()==='4to'||c.trim()==='Ctos'||c.trim()==='Cuartos'||c.trim()==='4t°'||c.trim()==='Cto')),
+        fsemi:r.findIndex(c=>c&&(c.trim()==='Semi'||c.trim()==='Semis'||c.trim()==='Sem'||c.trim()==='Semifinal')),
+        fcamp:r.findIndex(c=>c&&(c.trim()==='Camp'||c.trim()==='Campeon'||c.trim()==='Campeón'||c.trim()==='Final'||c.trim()==='Fin'||c.trim()==='3/C'||c.trim()==='3er/C'||c.trim()==='3Camp'||c.trim()==='Cmp/3'||c.trim()==='Cmp3')),
+        tot:ti, dif:r.findIndex(c=>c&&c.trim()==='Dif')>=0?r.findIndex(c=>c&&c.trim()==='Dif'):ti+1
+      };
+      console.log('📊 Headers cols 0-16:',r.slice(0,17).map((v,i)=>`[${i}]${v||''}`).join(' '));
+      console.log('📊 detectCols: fg8=',C.fg8,'f4t=',C.f4t,'fsemi=',C.fsemi,'fcamp=',C.fcamp,'tot=',C.tot);
+      return C;
+    }
   }
   return {hdr:1,rank:3,nombre:4,r1:5,r2:6,r3:7,marc:8,gpos:9,fg8:-1,f4t:-1,fsemi:-1,fcamp:-1,tot:14,dif:15};
 }
